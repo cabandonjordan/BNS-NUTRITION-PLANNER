@@ -19,7 +19,8 @@ import {
   FolderHeart,
   Heart,
   Loader2,
-  ListRestart
+  ListRestart,
+  Share2
 } from 'lucide-react';
 
 import { ChildMetrics, Ingredient, SavedMealPlan, Recipe, MealPlanResponse } from './types';
@@ -717,6 +718,142 @@ export default function App() {
     printWindow.document.close();
   };
 
+  // Standalone high-contrast, low-data print for rural hygiene & water safety tips
+  const handlePrintHygieneOnly = () => {
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) return;
+
+    const titleText = targetLanguage === 'en' ? "Rural Food Safety & Water Hygiene Guide" :
+                      targetLanguage === 'tl' ? "Gabay sa Kaligtasan ng Pagkain at Tubig-Inumin" :
+                      "Giya sa Kaluwasan sa Pagkaon ug Tubig-Imnon";
+
+    printWindow.document.write(`
+      <html>
+        <head>
+          <title>${titleText}</title>
+          <style>
+            @media print {
+              body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+            }
+            body { 
+              font-family: 'Helvetica Neue', Arial, sans-serif; 
+              padding: 25px; 
+              color: #1e293b; 
+              background: #fff; 
+              max-width: 600px;
+              margin: 0 auto; 
+            }
+            .header-banner { 
+              border: 3px solid #059669; 
+              border-radius: 12px;
+              background: #ecfdf5;
+              padding: 18px; 
+              text-align: center; 
+              margin-bottom: 25px;
+            }
+            .title { 
+              font-size: 20px; 
+              font-weight: 900; 
+              color: #065f46; 
+              margin: 5px 0; 
+              text-transform: uppercase;
+              letter-spacing: 0.5px;
+            }
+            .subtitle { 
+              font-size: 11px; 
+              text-transform: uppercase; 
+              letter-spacing: 1px; 
+              color: #047857; 
+              font-weight: 800; 
+            }
+            .tagline {
+              font-size: 12px;
+              color: #475569;
+              margin: 8px 0 0 0;
+              font-weight: 600;
+            }
+            .tip-card { 
+              border: 2.5px solid #e2e8f0; 
+              border-radius: 16px; 
+              padding: 16px; 
+              margin-bottom: 18px; 
+              background: #fff;
+              page-break-inside: avoid;
+            }
+            .tip-card-title { 
+              font-size: 14px; 
+              font-weight: 800; 
+              color: #065f46; 
+              margin: 0 0 8px 0; 
+              border-bottom: 1.5px solid #a7f3d0;
+              padding-bottom: 6px;
+            }
+            .tip-card-desc { 
+              font-size: 12.5px; 
+              line-height: 1.55; 
+              color: #1e293b; 
+              font-weight: 500;
+              margin: 0;
+            }
+            .footer-note { 
+              text-align: center; 
+              margin-top: 30px; 
+              border-top: 2px dashed #a7f3d0; 
+              padding-top: 15px; 
+              font-size: 11px; 
+              color: #047857; 
+              font-weight: bold;
+              text-transform: uppercase;
+            }
+            .share-prompt {
+              font-size: 11px;
+              color: #64748b;
+              font-weight: 600;
+              text-align: center;
+              margin-top: 8px;
+              text-transform: none;
+            }
+          </style>
+        </head>
+        <body>
+          <div class="header-banner">
+            <span class="subtitle">Barangay Nutrition Scholar (BNS) Outreach</span>
+            <h1 class="title">🛡️ ${getUIText('hygieneSectionTitle', targetLanguage)}</h1>
+            <p class="tagline">
+              ${targetLanguage === 'en' ? 'Quick hygiene guidelines for clean food and safe drinking water in our community.' : 
+               targetLanguage === 'tl' ? 'Paalala para sa malinis at ligtas na pagkain at inuming tubig sa ating komunidad.' :
+               'Mga pahinumdom alang sa limpyo ug luwas nga pagkaon ug tubig sa atong komunidad.'}
+            </p>
+          </div>
+
+          <div class="tip-card" style="border-color: #3498db; background-color: #f0f9ff;">
+            <h2 class="tip-card-title" style="color: #1d4ed8; border-color: #93c5fd;">💧 ${getUIText('hygieneTip1Title', targetLanguage)}</h2>
+            <p class="tip-card-desc">${getUIText('hygieneTip1Desc', targetLanguage)}</p>
+          </div>
+
+          <div class="tip-card" style="border-color: #f39c12; background-color: #fffbeb;">
+            <h2 class="tip-card-title" style="color: #b45309; border-color: #fde68a;">🫙 ${getUIText('hygieneTip2Title', targetLanguage)}</h2>
+            <p class="tip-card-desc">${getUIText('hygieneTip2Desc', targetLanguage)}</p>
+          </div>
+
+          <div class="tip-card" style="border-color: #10b981; background-color: #f0fdf4;">
+            <h2 class="tip-card-title" style="color: #047857; border-color: #a7f3d0;">🍃 ${getUIText('hygieneTip3Title', targetLanguage)}</h2>
+            <p class="tip-card-desc">${getUIText('hygieneTip3Desc', targetLanguage)}</p>
+          </div>
+
+          <div class="footer-note">
+            Inihandog ng inyong Barangay Health Center & Barangay Nutrition Scholar (BNS) Program
+            <div class="share-prompt">
+              💡 <em>TIPS: Take a screenshot (or print to PDF) to share this flyer easily on private chats or social media group chats with minimal cellular data.</em>
+            </div>
+          </div>
+          <script>window.print();</script>
+        </body>
+      </html>
+    `);
+    printWindow.document.close();
+  };
+
   return (
     <div className="min-h-screen bg-[#FDFCF0] flex flex-col font-sans text-v-dark">
       
@@ -1048,20 +1185,33 @@ export default function App() {
               {/* Food Safety & Rural Hygiene Advice Card */}
               {foodSafetyMode && (
                 <div id="food-safety-display-card" className="bg-[#E8F8F5] border-2 border-[#A7F3D0] rounded-2xl p-6 shadow-xs space-y-4">
-                  <div className="flex items-center gap-3">
-                    <div className="p-2.5 bg-[#059669] text-white rounded-xl shadow-tiny">
-                      <Sparkles className="w-5 h-5 animate-pulse" />
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-emerald-100 pb-3">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2.5 bg-[#059669] text-white rounded-xl shadow-tiny">
+                        <Sparkles className="w-5 h-5 animate-pulse" />
+                      </div>
+                      <div>
+                        <h4 className="font-sans font-black text-xs uppercase tracking-wider text-[#065f46]">
+                          {getUIText('hygieneSectionTitle', targetLanguage)}
+                        </h4>
+                        <p className="text-[10px] text-[#047857] font-semibold mt-0.5">
+                          {targetLanguage === 'en' ? 'Critical hygiene safety tailored for remote or low-resource tribal households.' : 
+                           targetLanguage === 'tl' ? 'Mahahalagang gabay sa kalinisan para sa mga tahanang walang sapat na gripo o kuryente.' :
+                           'Giya sa kalimpyo sa panimalay ilabi na sa mga hilit nga dapit nga walay gripo.'}
+                        </p>
+                      </div>
                     </div>
-                    <div>
-                      <h4 className="font-sans font-black text-xs uppercase tracking-wider text-[#065f46]">
-                        {getUIText('hygieneSectionTitle', targetLanguage)}
-                      </h4>
-                      <p className="text-[10px] text-[#047857] font-semibold mt-0.5">
-                        {targetLanguage === 'en' ? 'Critical hygiene safety tailored for remote or low-resource tribal households.' : 
-                         targetLanguage === 'tl' ? 'Mahahalagang gabay sa kalinisan para sa mga tahanang walang sapat na gripo o kuryente.' :
-                         'Giya sa kalimpyo sa panimalay ilabi na sa mga hilit nga dapit nga walay gripo.'}
-                      </p>
-                    </div>
+                    
+                    <button
+                      type="button"
+                      onClick={handlePrintHygieneOnly}
+                      className="flex items-center justify-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-[10px] font-black uppercase tracking-wider shadow-tiny hover:shadow-xs transition-all self-start sm:self-center cursor-pointer select-none"
+                    >
+                      <Share2 className="w-3.5 h-3.5" />
+                      <span>{targetLanguage === 'en' ? 'Share Rural Tips (Low-Data)' :
+                             targetLanguage === 'tl' ? 'Ibahagi ang Gabay' :
+                             'Ipakatap ang Giya'}</span>
+                    </button>
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-5 pt-1">
