@@ -133,6 +133,41 @@ export const UI_LABELS: Record<string, Record<TargetLanguage, string>> = {
     en: "Always boil drinking water. Clean surroundings make a healthy child.",
     tl: "Pakuluan palagi ang tubig-inumin. Ang malinis na paligid ay nagdudulot ng malusog na sanggol.",
     bis: "Kanunay ipabukal ang tubig nga imnon. Ang limpyo nga palibot nagahatag og himsog nga bata."
+  },
+  hygieneSectionTitle: {
+    en: "🏡 Local Food Safety & Rural Hygiene Guide",
+    tl: "🏡 Gabay sa Kaligtasan ng Pagkain at Kalinisan sa Probinsya",
+    bis: "🏡 Giya sa Kaluwasan sa Pagkaon ug Kalimpyo sa Probinsya"
+  },
+  hygieneTip1Title: {
+    en: "1. DIY Running Water for Handwashing",
+    tl: "1. DIY Running Water para sa Paghuhugas",
+    bis: "1. DIY Naga-agas nga Tubig para sa Paghugas"
+  },
+  hygieneTip1Desc: {
+    en: "Wash hands with clean soap and flowing water for 20 seconds before cooking or feeding. If there is no tap/gripo, use a clean dipper (tabo) and have another family member pour water over your hands, rather than dipping hands directly into a standing bowl or bucket (palanggana), which spreads germs.",
+    tl: "Hugasan ang kamay gamit ang sabon at umaagos na tubig sa loob ng 20 segundo bago magluto o magsubo. Kung walang gripo, gumamit ng malinis na tabo at magpatulong sa kasama sa bahay na ibuhos ito sa iyong kamay. IWASAN ang paglubog ng kamay sa palanggana dahil mabilis nitong ikinakalat ang dumi at mikrobyo.",
+    bis: "Hugasi ang mga kamot gamit ang sabon ug naga-agas nga tubig sulod sa 20 segundos sa dili pa magluto o magpakaon sa bata. Kung walay gripo, mogamit og limpyo nga tabo ug pabasbasa ang tubig sa kamot kauban ang laing tawo. LIKAYAN ang pagtuslob sa kamot diritso sa planggana kay dali ra kaayo makakatag og kagaw."
+  },
+  hygieneTip2Title: {
+    en: "2. Safe Water Storage & Scooping",
+    tl: "2. Ligtas na Lalagyan at Pagsalok ng Tubig",
+    bis: "2. Luwas nga Sudlanan ug Pagsalok sa Tubig"
+  },
+  hygieneTip2Desc: {
+    en: "Keep drinking water containers tightly sealed and elevated off the floor to prevent floor dust, chickens, or house pests from contaminating the vessel. Always use a dedicated clean cup with a long handle to scoop drinking water, or use container jugs equipped with a functional tap/gripo.",
+    tl: "Panatilihing laging sarado ang takip ng inuming tubig at HUWAG itong itatabi sa sahig upang hindi dapuan ng alikabok, manok, o peste. Gumamit lamang ng malinis at may mahabang hawakan na sandok o baso sa pagsalok ng tubig, o gumamit ng container na may sariling gripo.",
+    bis: "Kanunay tabunan og hugot ang sudlanan sa tubig-imnon ug I-ISA kini gikan sa salog aron dili maabot sa abog, mga manok, o laing peste. Mogamit og baso nga limpyo ug dunay taas nga kuptanan sa pagsalok, o mas maayo kadtong decanter/container nga naay kaugalingong gripo."
+  },
+  hygieneTip3Title: {
+    en: "3. Clean Yard Ingredient Washing & Pest Control",
+    tl: "3. Paglilinis ng Sangkap at Pagkalinga sa Pagkain",
+    bis: "3. Paghugas sa Sagol ug Pagpanalipod sa Pagkaon"
+  },
+  hygieneTip3Desc: {
+    en: "Wash backyard veggies and leafy malunggay under clean, flowing water to detach micro-soil and bacteria. Always cover prepared plates or cooking pots using a traditional clean food cover (tudong) or fly-proof mesh to prevent houseflies and yard animals from spoiling the child's meal.",
+    tl: "Hugasan ang mga gulay at dahon ng malunggay mula sa bakuran sa ilalim ng umaagos na tubig bago pitasin o hiwain. Takpan palagi ang nilutong pagkain gamit ang malinis na tudong (food cover) o kulambo ng pagkain upang hindi madapuan ng langaw, langgam, o dumi ng hayop.",
+    bis: "Hugasi pag-ayo ang mga utanon ug dahon sa kamunggay gikan sa tugkaran sa naga-agas nga tubig sa dili pa putlon. Kanunayng tabunan ang giluto nga pagkaon gamit ang limpyo nga tudong (food cover) o kulambo sa pagkaon aron dili madapuan sa langaw, hulmigas, o hugaw."
   }
 };
 

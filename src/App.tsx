@@ -218,6 +218,7 @@ export default function App() {
   const [keyStatus, setKeyStatus] = useState<boolean>(true);
   const [handoutMode, setHandoutMode] = useState<boolean>(false);
   const [targetLanguage, setTargetLanguage] = useState<TargetLanguage>('tl');
+  const [foodSafetyMode, setFoodSafetyMode] = useState<boolean>(true);
 
   // Load plans from localStorage on boot
   useEffect(() => {
@@ -547,9 +548,32 @@ export default function App() {
               ${tEncouraging.replace(/\n/g, '<br/>')}
             </div>
 
+            ${foodSafetyMode ? `
+              <div style="margin-top: 30px; border: 2.5px solid #059669; border-radius: 16px; background: #f0fdf4; padding: 22px; page-break-inside: avoid; text-align: left;">
+                <h3 style="margin: 0 0 16px 0; color: #065f46; font-size: 17px; font-weight: 800; border-bottom: 2px solid #a7f3d0; padding-bottom: 8px; text-transform: uppercase;">
+                  ${getUIText('hygieneSectionTitle', targetLanguage)}
+                </h3>
+                <div style="display: flex; flex-direction: column; gap: 16px;">
+                  <div>
+                    <h4 style="margin: 0; font-size: 13.5px; font-weight: 800; color: #065f46; display: flex; align-items: center; gap: 6px;">💧 ${getUIText('hygieneTip1Title', targetLanguage)}</h4>
+                    <p style="margin: 5px 0 0 0; font-size: 12.5px; line-height: 1.55; color: #1e293b; font-weight: 500;">${getUIText('hygieneTip1Desc', targetLanguage)}</p>
+                  </div>
+                  <div>
+                    <h4 style="margin: 0; font-size: 13.5px; font-weight: 800; color: #065f46; display: flex; align-items: center; gap: 6px;">🫙 ${getUIText('hygieneTip2Title', targetLanguage)}</h4>
+                    <p style="margin: 5px 0 0 0; font-size: 12.5px; line-height: 1.55; color: #1e293b; font-weight: 500;">${getUIText('hygieneTip2Desc', targetLanguage)}</p>
+                  </div>
+                  <div>
+                    <h4 style="margin: 0; font-size: 13.5px; font-weight: 800; color: #065f46; display: flex; align-items: center; gap: 6px;">🍃 ${getUIText('hygieneTip3Title', targetLanguage)}</h4>
+                    <p style="margin: 5px 0 0 0; font-size: 12.5px; line-height: 1.55; color: #1e293b; font-weight: 500;">${getUIText('hygieneTip3Desc', targetLanguage)}</p>
+                  </div>
+                </div>
+              </div>
+            ` : ''}
+
             <div class="bhc-sign">
               Inihandog ng inyong lokal na Barangay Health Center at Barangay Nutrition Scholar program • 2026
             </div>
+            <script>window.print();</script>
           </body>
         </html>
       `);
@@ -659,6 +683,28 @@ export default function App() {
 
             <div class="note-title">Nutritional Scholar Advice Note:</div>
             <p class="note-body">${result.nutritionistNote}</p>
+
+            ${foodSafetyMode ? `
+              <div style="margin-top: 30px; border: 2px solid #0d9488; border-radius: 12px; background: #f0fdfa; padding: 18px; page-break-inside: avoid; text-align: left;">
+                <h3 style="margin: 0 0 12px 0; color: #115e59; font-size: 14px; font-weight: bold; border-bottom: 1.5px solid #99f6e4; padding-bottom: 6px; text-transform: uppercase;">
+                  🛡️ ${getUIText('hygieneSectionTitle', targetLanguage)}
+                </h3>
+                <div style="display: flex; flex-direction: column; gap: 12px; font-size: 12.5px; line-height: 1.5; color: #334155;">
+                  <div>
+                    <strong style="color: #115e59;">${getUIText('hygieneTip1Title', targetLanguage)}:</strong>
+                    <p style="margin: 3px 0 0 0; color: #1e293b;">${getUIText('hygieneTip1Desc', targetLanguage)}</p>
+                  </div>
+                  <div>
+                    <strong style="color: #115e59;">${getUIText('hygieneTip2Title', targetLanguage)}:</strong>
+                    <p style="margin: 3px 0 0 0; color: #1e293b;">${getUIText('hygieneTip2Desc', targetLanguage)}</p>
+                  </div>
+                  <div>
+                    <strong style="color: #115e59;">${getUIText('hygieneTip3Title', targetLanguage)}:</strong>
+                    <p style="margin: 3px 0 0 0; color: #1e293b;">${getUIText('hygieneTip3Desc', targetLanguage)}</p>
+                  </div>
+                </div>
+              </div>
+            ` : ''}
 
             <div style="text-align: center; margin-top: 50px; border-top: 1px dashed #e2e8f0; padding-top: 15px; font-size: 11px; color: #64748b;">
               Issued by the Barangay Nutrition Office under local pediatric guidelines. Safe drinking water is essential.
@@ -912,6 +958,17 @@ export default function App() {
                       </select>
                     </div>
                   )}
+
+                  {/* Food Safety & Hygiene Toggle */}
+                  <label id="food-safety-toggle" className="flex items-center gap-2 px-3 py-1.5 bg-slate-50 hover:bg-slate-100/80 border border-slate-200 rounded-xl cursor-pointer text-[10px] font-black uppercase tracking-wider text-slate-700 transition-colors select-none">
+                    <input
+                      type="checkbox"
+                      checked={foodSafetyMode}
+                      onChange={(e) => setFoodSafetyMode(e.target.checked)}
+                      className="accent-pink-600 w-3.5 h-3.5 cursor-pointer rounded"
+                    />
+                    <span>🛡️ Food Safety & Rural Hygiene</span>
+                  </label>
                 </div>
               </div>
 
@@ -987,6 +1044,59 @@ export default function App() {
                   <RecipeCard key={r.id} recipe={r} targets={targetNutrients} index={i} handoutMode={handoutMode} targetLanguage={targetLanguage} />
                 ))}
               </div>
+
+              {/* Food Safety & Rural Hygiene Advice Card */}
+              {foodSafetyMode && (
+                <div id="food-safety-display-card" className="bg-[#E8F8F5] border-2 border-[#A7F3D0] rounded-2xl p-6 shadow-xs space-y-4">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2.5 bg-[#059669] text-white rounded-xl shadow-tiny">
+                      <Sparkles className="w-5 h-5 animate-pulse" />
+                    </div>
+                    <div>
+                      <h4 className="font-sans font-black text-xs uppercase tracking-wider text-[#065f46]">
+                        {getUIText('hygieneSectionTitle', targetLanguage)}
+                      </h4>
+                      <p className="text-[10px] text-[#047857] font-semibold mt-0.5">
+                        {targetLanguage === 'en' ? 'Critical hygiene safety tailored for remote or low-resource tribal households.' : 
+                         targetLanguage === 'tl' ? 'Mahahalagang gabay sa kalinisan para sa mga tahanang walang sapat na gripo o kuryente.' :
+                         'Giya sa kalimpyo sa panimalay ilabi na sa mga hilit nga dapit nga walay gripo.'}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-5 pt-1">
+                    {/* Tip 1 */}
+                    <div className="bg-white/95 rounded-xl p-4.5 border border-emerald-100 shadow-tiny space-y-2">
+                      <div className="text-[9px] uppercase font-black tracking-widest text-[#059669] bg-emerald-50 px-2.5 py-0.5 rounded-md inline-block">
+                        {getUIText('hygieneTip1Title', targetLanguage)}
+                      </div>
+                      <p className="text-xs text-slate-700 font-bold leading-relaxed">
+                        {getUIText('hygieneTip1Desc', targetLanguage)}
+                      </p>
+                    </div>
+
+                    {/* Tip 2 */}
+                    <div className="bg-white/95 rounded-xl p-4.5 border border-emerald-100 shadow-tiny space-y-2">
+                      <div className="text-[9px] uppercase font-black tracking-widest text-[#059669] bg-emerald-50 px-2.5 py-0.5 rounded-md inline-block">
+                        {getUIText('hygieneTip2Title', targetLanguage)}
+                      </div>
+                      <p className="text-xs text-slate-700 font-bold leading-relaxed">
+                        {getUIText('hygieneTip2Desc', targetLanguage)}
+                      </p>
+                    </div>
+
+                    {/* Tip 3 */}
+                    <div className="bg-white/95 rounded-xl p-4.5 border border-emerald-100 shadow-tiny space-y-2">
+                      <div className="text-[9px] uppercase font-black tracking-widest text-[#059669] bg-emerald-50 px-2.5 py-0.5 rounded-md inline-block">
+                        {getUIText('hygieneTip3Title', targetLanguage)}
+                      </div>
+                      <p className="text-xs text-slate-700 font-bold leading-relaxed">
+                        {getUIText('hygieneTip3Desc', targetLanguage)}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
 
             </motion.div>
           )}
