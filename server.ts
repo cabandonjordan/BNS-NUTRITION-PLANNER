@@ -287,6 +287,56 @@ Create your responses formatted exactly according to the requested JSON layout.
     }
   });
 
+  // API endpoint for regenerating a single cooking step interactively
+  app.post("/api/regenerate-step", async (req, res) => {
+    try {
+      const { stepText, newMethod, dishTitle } = req.body;
+      if (!stepText || !newMethod) {
+        return res.status(400).json({ error: "Missing required stepText or newMethod parameters." });
+      }
+
+      // Check on API Key - if missing, throw clear message
+      try {
+        getGemini();
+      } catch (keyErr: any) {
+        return res.status(403).json({ 
+          error: keyErr.message, 
+          needsKey: true 
+        });
+      }
+
+      const gemini = getGemini();
+
+      const prompt = `
+You are an expert community dining chef and public health dietitian in the Philippines.
+We have an existing step from our large-batch communal recipe titled "${dishTitle || 'Communal Recipe'}":
+Step: "${stepText}"
+
+We want to modify this step on behalf of a Barangay Nutrition Scholar (BNS) because of a specific preparation adjustment request:
+Change the primary cooking/processing style/action/technique in this step to use the method: "${newMethod}" (e.g., if it says 'boil', transition it to 'steam', 'mash', 'grill', 'stir-fry' or another suitable technique).
+
+Tasks:
+1. Rewrite this single step instruction clearly, keeping it highly descriptive, culturally aligned, and practical for low-resource community kitchens in Philippines.
+2. Maintain the same general ingredient details, portioning, or sequence relative to the original step, but switch the culinary technique as instructed.
+3. Keep the output extremely clean. Return ONLY the rewritten step instruction text as a plain string, with NO extra conversational dialogue, NO quote marks around the outer text, and NO markdown prefixes.
+`;
+
+      const response = await gemini.models.generateContent({
+        model: "gemini-3.5-flash",
+        contents: prompt
+      });
+
+      const responseText = response.text?.trim() || stepText;
+      res.json({ updatedStep: responseText });
+
+    } catch (error: any) {
+      console.error("Step regeneration error:", error);
+      res.status(500).json({
+        error: error.message || "Failed to regenerate step."
+      });
+    }
+  });
+
   // Health check endpoint
   app.get("/api/health", (req, res) => {
     res.json({ status: "healthy", keyStatus: !!process.env.GEMINI_API_KEY });

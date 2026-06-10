@@ -13,7 +13,8 @@ import {
   Sparkles, 
   Loader2,
   FileText,
-  UtensilsCrossed
+  UtensilsCrossed,
+  Download
 } from 'lucide-react';
 import { CommunalChildCase, CommunalBatchRecipe } from '../types';
 
@@ -72,6 +73,38 @@ export default function CommunityKitchenProcessor({ isDemoMode, onAlert }: Commu
   const [stocks, setStocks] = useState(DEFAULT_STOCKS);
   const [loading, setLoading] = useState(false);
   const [recipeResult, setRecipeResult] = useState<CommunalBatchRecipe | null>(null);
+
+  // Interactive AI inline edits state
+  const [editedGuide, setEditedGuide] = useState<string[]>([]);
+  const [regeneratingStepIdx, setRegeneratingStepIdx] = useState<number | null>(null);
+  const [tooltip, setTooltip] = useState<{
+    visible: boolean;
+    x: number;
+    y: number;
+    text: string;
+    stepIdx: number;
+  }>({ visible: false, x: 0, y: 0, text: '', stepIdx: -1 });
+
+  // Sync edited instructions state whenever compile results are refreshed
+  React.useEffect(() => {
+    if (recipeResult) {
+      setEditedGuide(recipeResult.batchPreparationGuide);
+    } else {
+      setEditedGuide([]);
+    }
+  }, [recipeResult]);
+
+  // Click-outside listener to hide floating prompt tooltip
+  React.useEffect(() => {
+    const handleMouseAway = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      if (!target.closest('.ai-quick-edit-tooltip')) {
+        setTooltip(prev => ({ ...prev, visible: false }));
+      }
+    };
+    document.addEventListener('mousedown', handleMouseAway);
+    return () => document.removeEventListener('mousedown', handleMouseAway);
+  }, []);
 
   // New Case Input Form state
   const [newName, setNewName] = useState('');
@@ -259,6 +292,149 @@ Operating in standard reference mode. Registered ${total} children.
     } finally {
       setLoading(false);
     }
+  };
+
+  // Text selection change listener for detecting highlighted cooking methods
+  const handleTextSelection = (e: React.MouseEvent, stepIdx: number) => {
+    const selection = window.getSelection();
+    if (!selection) return;
+    const selectedText = selection.toString().trim();
+    
+    // Listen for small targets/culinary action verbs (2 to 25 chars max)
+    if (selectedText.length >= 2 && selectedText.length <= 25) {
+      try {
+        const range = selection.getRangeAt(0);
+        const rect = range.getBoundingClientRect();
+        
+        setTooltip({
+          visible: true,
+          x: rect.left + rect.width / 2,
+          y: rect.top - 10,
+          text: selectedText,
+          stepIdx
+        });
+      } catch (err) {
+        // Range selection calculation error
+      }
+    }
+  };
+
+  // Immediate AI Step adaptation request
+  const promptStepRegen = async (stepIdx: number, originalText: string, highlightedWord: string, newMethod: string) => {
+    setTooltip(prev => ({ ...prev, visible: false }));
+    setRegeneratingStepIdx(stepIdx);
+
+    if (isDemoMode) {
+      // Direct simulation mode
+      setTimeout(() => {
+        let updatedText = originalText;
+        const lowerText = originalText.toLowerCase();
+        const lowerHighlight = highlightedWord.toLowerCase();
+        
+        if (lowerText.includes(lowerHighlight)) {
+          const regex = new RegExp(highlightedWord, 'i');
+          updatedText = originalText.replace(regex, `${newMethod.toLowerCase()} (AI Modified)`);
+        } else {
+          // General replacements of standard verbs
+          updatedText = originalText.replace(/(boil|stir|mash|flake|crack|sprinkle|cook|bake|grill|steam|pour|serve)/gi, (match) => {
+            return `${newMethod} (AI Modified)`;
+          });
+        }
+        
+        const nextGuide = [...editedGuide];
+        nextGuide[stepIdx] = updatedText;
+        setEditedGuide(nextGuide);
+        setRegeneratingStepIdx(null);
+        onAlert(`AI adapted Step ${stepIdx + 1} to use "${newMethod}" successfully.`);
+      }, 1000);
+      return;
+    }
+
+    try {
+      const resp = await fetch('/api/regenerate-step', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          stepText: originalText,
+          newMethod,
+          dishTitle: recipeResult?.title || 'Communal Recipe'
+        })
+      });
+
+      const data = await resp.json();
+      if (!resp.ok) {
+        throw new Error(data.error || 'Server rejected step modification.');
+      }
+
+      const nextGuide = [...editedGuide];
+      nextGuide[stepIdx] = data.updatedStep;
+      setEditedGuide(nextGuide);
+      onAlert(`AI updated Step ${stepIdx + 1} to "${newMethod}" cooking method!`);
+    } catch (err: any) {
+      console.error(err);
+      
+      // Fallback local operation
+      const regex = new RegExp(highlightedWord, 'i');
+      const updatedText = originalText.replace(regex, `${newMethod.toUpperCase()} (BNS alternative)`);
+      const nextGuide = [...editedGuide];
+      nextGuide[stepIdx] = updatedText;
+      setEditedGuide(nextGuide);
+      onAlert(`Step adjusted to "${newMethod}" via baseline fallback.`);
+    } finally {
+      setRegeneratingStepIdx(null);
+    }
+  };
+
+  // Export batch details and stock status as CSV report
+  const handleExportCSV = () => {
+    if (!recipeResult) return;
+
+    const timestamp = new Date().toISOString().replace('T', ' ').substring(0, 19);
+    const csvRows: string[] = [];
+    
+    csvRows.push('"BARANGAY HEALTH OFFICE - COMMUNITY KITCHEN FEEDING PROGRAM REPORT"');
+    csvRows.push(`"Report Generated On","${timestamp} UTC"`);
+    csvRows.push('');
+    
+    csvRows.push('"BATCH RECIPE OVERVIEW"');
+    csvRows.push(`"Recipe Title","${recipeResult.title.replace(/"/g, '""')}"`);
+    csvRows.push(`"Target Meal Volume","${recipeResult.totalServings} Servings"`);
+    csvRows.push(`"Dietary Profile","${recipeResult.dietarySuitability.replace(/"/g, '""')}"`);
+    csvRows.push('');
+    
+    csvRows.push('"COMMUNAL BATCH INGREDIENT SCALING REPORT"');
+    csvRows.push('"Ingredient Title","Required Quantity","Sourcing Class"');
+    recipeResult.scaledIngredients.forEach(ing => {
+      csvRows.push(`"${ing.name.replace(/"/g, '""')}","${ing.quantity.replace(/"/g, '""')}","${ing.category.toUpperCase()}"`);
+    });
+    csvRows.push('');
+    
+    csvRows.push('"PARTICIPATING REGISTERED CHILD CASES"');
+    csvRows.push('"Patient Name / Alias","Age (Months)","Nutrition Classification","Field Scholar (BNS)","Available Household Pantry"');
+    cases.forEach(c => {
+      const suppliesText = c.householdSupplies ? c.householdSupplies.join(', ') : 'None';
+      csvRows.push(`"${c.name.replace(/"/g, '""')}",${c.ageMonths},"${c.condition}","${c.bnsWorker.replace(/"/g, '""')}","${suppliesText.replace(/"/g, '""')}"`);
+    });
+    csvRows.push('');
+    
+    csvRows.push('"WAREHOUSE DISPATCH AND LOCAL HARVEST SECURITY AUDIT"');
+    csvRows.push('"Storage Item","Current Registered Sacks/Qty","Category Class","Min Safe Threshold","Status"');
+    stocks.forEach(s => {
+      const gNum = parseNumberValue(s.quantity);
+      const isLow = gNum < (s.threshold || 15);
+      csvRows.push(`"${s.name.replace(/"/g, '""')}","${s.quantity.replace(/"/g, '""')}","${s.category.toUpperCase()}",${s.threshold || 15},"${isLow ? 'SHORTAGE ALERT' : 'SAFE'}"`);
+    });
+
+    const csvContent = '\uFEFF' + csvRows.join('\r\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute('download', `Barangay_San_Jose_Communal_Kitchen_Report_${new Date().toISOString().substring(0, 10)}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
   };
 
   return (
@@ -650,9 +826,21 @@ Operating in standard reference mode. Registered ${total} children.
               </h3>
             </div>
             
-            <div className="shrink-0 bg-[#FFF5F5] border border-red-200 rounded-xl px-4 py-2.5 text-center shadow-tiny">
-              <span className="text-[9px] font-black uppercase tracking-wider text-red-700 block">COMMUNAL FEEDING CAPACITY</span>
-              <span className="text-xl font-sans font-black text-red-700">{recipeResult.totalServings} Children Servings</span>
+            <div className="flex flex-wrap items-center gap-3 shrink-0">
+              <button
+                type="button"
+                onClick={handleExportCSV}
+                className="bg-slate-900 hover:bg-slate-800 text-white py-2.5 px-4 rounded-xl text-xs font-black uppercase tracking-wider flex items-center gap-2 cursor-pointer transition-colors shadow-sm"
+                title="Download CSV report for the Barangay Health Office"
+              >
+                <Download className="w-4 h-4 text-emerald-400 stroke-[2.5]" />
+                <span>Export Report (.CSV)</span>
+              </button>
+
+              <div className="bg-[#FFF5F5] border border-red-200 rounded-xl px-4 py-2.5 text-center shadow-tiny">
+                <span className="text-[9px] font-black uppercase tracking-wider text-red-700 block">COMMUNAL FEEDING CAPACITY</span>
+                <span className="text-xl font-sans font-black text-red-700">{recipeResult.totalServings} Children Servings</span>
+              </div>
             </div>
           </div>
 
@@ -725,22 +913,70 @@ Operating in standard reference mode. Registered ${total} children.
           </div>
 
           {/* Communal Preparation Checklist Timeline */}
-          <div className="space-y-3">
-            <h4 className="font-sans font-black text-xs text-slate-500 uppercase tracking-widest">
-              👨‍🍳 COMMUNITY KITCHEN COOKING TIMELINE
-            </h4>
+          <div className="space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-2">
+              <h4 className="font-sans font-black text-xs text-slate-500 uppercase tracking-widest">
+                👨‍🍳 INTEGRATED COMMUNITY KITCHEN TIMELINE
+              </h4>
+              <span className="text-[9.5px] bg-amber-50 border border-amber-250 text-amber-800 font-extrabold px-2.5 py-0.5 rounded-md uppercase tracking-wider">
+                💡 AI Quick-Edit Active
+              </span>
+            </div>
 
-            <div className="space-y-2">
-              {recipeResult.batchPreparationGuide.map((step, idx) => (
-                <div key={idx} className="bg-slate-50/60 border border-slate-150 rounded-xl p-4 flex items-start gap-3.5 hover:bg-slate-50 transition-all text-left">
-                  <div className="w-6 h-6 rounded-full bg-emerald-600 text-white font-mono text-xs font-black flex items-center justify-center shrink-0 mt-0.5 shadow-tiny">
-                    {idx + 1}
+            <p className="text-[10.5px] font-sans font-semibold text-slate-500 bg-slate-50/50 p-2.5 rounded-xl border border-dashed border-slate-200">
+              ⚡ <strong>BNS Action Tip:</strong> Drag your cursor to <strong>highlight any word</strong> (like <em>&quot;boil&quot;</em> or <em>&quot;mash&quot;</em>) in the recipe steps below, or double-click culinary verbs to trigger the interactive <strong>AI Quick Edit Tool</strong> and adapt cooking methods immediately! Click steps to edit inline too.
+            </p>
+
+            <div className="space-y-3">
+              {editedGuide.map((step, idx) => {
+                const isRegenerating = regeneratingStepIdx === idx;
+                return (
+                  <div 
+                    key={idx} 
+                    className={`border rounded-xl p-4 flex items-start gap-3.5 transition-all text-left ${
+                      isRegenerating 
+                        ? 'border-emerald-350 bg-emerald-50/20 animate-pulse' 
+                        : 'border-slate-150 bg-slate-50/30 hover:bg-slate-50'
+                    }`}
+                  >
+                    <div className="w-6.5 h-6.5 rounded-full bg-emerald-600 text-white font-mono text-xs font-black flex items-center justify-center shrink-0 mt-0.5 shadow-tiny">
+                      {idx + 1}
+                    </div>
+
+                    <div 
+                      className="w-full"
+                      onMouseUp={(e) => handleTextSelection(e, idx)}
+                    >
+                      {isRegenerating ? (
+                        <div className="flex items-center gap-2 py-1 text-xs text-emerald-800 font-extrabold">
+                          <Loader2 className="w-4 h-4 animate-spin text-emerald-600" />
+                          <span>AI Adaptation in progress: adapts text to chosen culinary method...</span>
+                        </div>
+                      ) : (
+                        <div className="space-y-1">
+                          <span
+                            contentEditable
+                            suppressContentEditableWarning
+                            onBlur={(e) => {
+                              const updated = [...editedGuide];
+                              updated[idx] = e.currentTarget.textContent || '';
+                              setEditedGuide(updated);
+                            }}
+                            className="border-b border-dashed border-transparent hover:border-slate-350 focus:outline-none focus:border-emerald-500 px-0.5 rounded cursor-text transition-all block w-full text-xs text-slate-650 font-bold leading-relaxed focus:bg-white"
+                          >
+                            {step}
+                          </span>
+                          
+                          <div className="flex items-center justify-between text-[9px] font-extrabold uppercase tracking-wide text-zinc-400 mt-1 select-none">
+                            <span>✎ Inline Editable Step</span>
+                            <span className="text-indigo-400 font-black">Highlight cooking verbs to trigger AI Edit</span>
+                          </div>
+                        </div>
+                      )}
+                    </div>
                   </div>
-                  <p className="text-xs text-slate-600 font-semibold leading-relaxed mt-0.5">
-                    {step}
-                  </p>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
 
@@ -757,6 +993,48 @@ Operating in standard reference mode. Registered ${total} children.
             </div>
           </div>
 
+        </div>
+      )}
+
+      {/* Floating AI Quick-Edit Instruction adaptive tooltip */}
+      {tooltip.visible && (
+        <div 
+          className="ai-quick-edit-tooltip fixed z-50 bg-slate-900 border border-slate-800 text-white rounded-xl shadow-2xl flex flex-col md:flex-row items-center gap-2.5 p-2 md:p-3 text-[10.5px] font-sans antialiased animate-fade-in"
+          style={{ 
+            top: `${tooltip.y}px`, 
+            left: `${tooltip.x}px`,
+            transform: 'translate(-50%, -100%)'
+          }}
+          onMouseDown={(e) => e.stopPropagation()} // Stop propagation from triggering general click-away hide
+        >
+          <div className="flex items-center gap-1.5 border-b md:border-b-0 md:border-r border-slate-800 pb-1.5 md:pb-0 md:pr-2.5">
+            <Sparkles className="w-3.5 h-3.5 text-emerald-400 animate-pulse" />
+            <span className="font-extrabold text-[9px] text-[#A3E635] tracking-widest uppercase select-none">
+              AI Quick-Adapt: &quot;{tooltip.text.substring(0, 10)}{tooltip.text.length > 10 ? '...' : ''}&quot;
+            </span>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-1 justify-center">
+            {['Steam', 'Mash', 'Grill', 'Stir-fry', 'Boil'].map((method) => (
+              <button
+                key={method}
+                type="button"
+                onClick={() => promptStepRegen(tooltip.stepIdx, editedGuide[tooltip.stepIdx], tooltip.text, method)}
+                className="bg-slate-800 hover:bg-emerald-600 active:bg-emerald-700 text-white px-2 py-1 rounded-md text-[9px] font-black uppercase tracking-wider cursor-pointer transition-all"
+              >
+                {method}
+              </button>
+            ))}
+          </div>
+
+          <button
+            type="button"
+            onClick={() => setTooltip(p => ({ ...p, visible: false }))}
+            className="text-slate-500 hover:text-white px-1 font-black cursor-pointer text-xs"
+            title="Dismiss tool"
+          >
+            ×
+          </button>
         </div>
       )}
 
