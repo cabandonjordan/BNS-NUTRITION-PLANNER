@@ -168,6 +168,16 @@ export const UI_LABELS: Record<string, Record<TargetLanguage, string>> = {
     en: "Wash backyard veggies and leafy malunggay under clean, flowing water to detach micro-soil and bacteria. Always cover prepared plates or cooking pots using a traditional clean food cover (tudong) or fly-proof mesh to prevent houseflies and yard animals from spoiling the child's meal.",
     tl: "Hugasan ang mga gulay at dahon ng malunggay mula sa bakuran sa ilalim ng umaagos na tubig bago pitasin o hiwain. Takpan palagi ang nilutong pagkain gamit ang malinis na tudong (food cover) o kulambo ng pagkain upang hindi madapuan ng langaw, langgam, o dumi ng hayop.",
     bis: "Hugasi pag-ayo ang mga utanon ug dahon sa kamunggay gikan sa tugkaran sa naga-agas nga tubig sa dili pa putlon. Kanunayng tabunan ang giluto nga pagkaon gamit ang limpyo nga tudong (food cover) o kulambo sa pagkaon aron dili madapuan sa langaw, hulmigas, o hugaw."
+  },
+  seenByBNS: {
+    en: "✓ Seen by BNS",
+    tl: "✓ Natingnan ng BNS",
+    bis: "✓ Nabisitahan ug Nakita sa BNS"
+  },
+  seenByBNSDesc: {
+    en: "Please checklist and report back to your local Barangay Nutrition Scholar to secure family rewards/care updates!",
+    tl: "Mangyaring lagyan ng tsek at iulat sa inyong Barangay Nutrition Scholar upang masubaybayan ang kalusugan ng bata!",
+    bis: "Palihug og tsek ug i-report sa inyong Barangay Nutrition Scholar aron ma-update ang kalusugan sa bata!"
   }
 };
 

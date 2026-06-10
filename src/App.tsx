@@ -568,6 +568,16 @@ export default function App() {
                     <p style="margin: 5px 0 0 0; font-size: 12.5px; line-height: 1.55; color: #1e293b; font-weight: 500;">${getUIText('hygieneTip3Desc', targetLanguage)}</p>
                   </div>
                 </div>
+
+                <div style="margin-top: 22px; border: 2px dashed #059669; border-radius: 12px; background: #ffffff; padding: 12px 16px; display: flex; justify-content: space-between; align-items: center; gap: 12px; page-break-inside: avoid;">
+                  <div>
+                    <span style="font-size: 13.5px; font-weight: 800; color: #065f46; text-transform: uppercase;">🤝 ${getUIText('seenByBNS', targetLanguage)}</span>
+                    <p style="margin: 3px 0 0 0; font-size: 11px; color: #475569; font-weight: 600; line-height: 1.4;">${getUIText('seenByBNSDesc', targetLanguage)}</p>
+                  </div>
+                  <div style="flex-shrink: 0; transform: rotate(-3deg); border: 2.5px solid #10b981; padding: 6px 12px; border-radius: 8px; color: #10b981; font-weight: 900; font-size: 11px; font-family: monospace; text-align: center; background: #fff; letter-spacing: 0.5px; box-shadow: 2px 2px 0px rgba(16,185,129,0.15); text-transform: uppercase;">
+                    BNS CHECKPOINT
+                  </div>
+                </div>
               </div>
             ` : ''}
 
@@ -702,6 +712,16 @@ export default function App() {
                   <div>
                     <strong style="color: #115e59;">${getUIText('hygieneTip3Title', targetLanguage)}:</strong>
                     <p style="margin: 3px 0 0 0; color: #1e293b;">${getUIText('hygieneTip3Desc', targetLanguage)}</p>
+                  </div>
+                </div>
+
+                <div style="margin-top: 18px; border: 1.5px dashed #0d9488; border-radius: 10px; background: #ffffff; padding: 10px 14px; display: flex; justify-content: space-between; align-items: center; gap: 10px; page-break-inside: avoid;">
+                  <div>
+                    <span style="font-size: 12.5px; font-weight: bold; color: #115e59; text-transform: uppercase;">🤝 ${getUIText('seenByBNS', targetLanguage)}</span>
+                    <p style="margin: 2px 0 0 0; font-size: 11px; color: #475569; font-weight: 500; line-height: 1.4;">${getUIText('seenByBNSDesc', targetLanguage)}</p>
+                  </div>
+                  <div style="flex-shrink: 0; transform: rotate(-3deg); border: 2px solid #0d9488; padding: 5px 10px; border-radius: 6px; color: #0d9488; font-weight: bold; font-size: 10px; font-family: monospace; text-align: center; background: #fff; letter-spacing: 0.5px; box-shadow: 2px 2px 0px rgba(13,148,136,0.12); text-transform: uppercase;">
+                    BNS CHECKPOINT
                   </div>
                 </div>
               </div>
@@ -839,6 +859,16 @@ export default function App() {
           <div class="tip-card" style="border-color: #10b981; background-color: #f0fdf4;">
             <h2 class="tip-card-title" style="color: #047857; border-color: #a7f3d0;">🍃 ${getUIText('hygieneTip3Title', targetLanguage)}</h2>
             <p class="tip-card-desc">${getUIText('hygieneTip3Desc', targetLanguage)}</p>
+          </div>
+
+          <div style="border: 2px dashed #059669; border-radius: 12px; padding: 15px; margin-bottom: 25px; display: flex; align-items: center; justify-content: space-between; background-color: #f0fdf4; page-break-inside: avoid;">
+            <div style="margin-right: 15px; text-align: left;">
+              <b style="font-size: 14px; color: #065f46; text-transform: uppercase; display: block; margin-bottom: 4px;">🤝 ${getUIText('seenByBNS', targetLanguage)}</b>
+              <p style="margin: 0; font-size: 11.5px; color: #475569; font-weight: 600; line-height: 1.45;">${getUIText('seenByBNSDesc', targetLanguage)}</p>
+            </div>
+            <div style="flex-shrink: 0; border: 2.5px solid #059669; padding: 8px 14px; border-radius: 10px; color: #059669; font-weight: 900; font-size: 13px; font-family: monospace; text-align: center; background: #fff; transform: rotate(-5deg); box-shadow: 3px 3px 0px rgba(5,150,105,0.15); text-transform: uppercase; letter-spacing: 0.5px;">
+              BNS SEEN
+            </div>
           </div>
 
           <div class="footer-note">
@@ -1243,6 +1273,21 @@ export default function App() {
                       <p className="text-xs text-slate-700 font-bold leading-relaxed">
                         {getUIText('hygieneTip3Desc', targetLanguage)}
                       </p>
+                    </div>
+                  </div>
+
+                  {/* BNS Callback Verification Stamp */}
+                  <div className="bg-white/95 border-2 border-dashed border-emerald-300 rounded-xl p-4 flex flex-col md:flex-row items-center justify-between gap-4 mt-2 shadow-xs">
+                    <div className="space-y-1 text-left">
+                      <h5 className="font-sans font-extrabold text-xs text-[#065f46] uppercase tracking-wider flex items-center gap-1.5">
+                        🤝 {getUIText('seenByBNS', targetLanguage)}
+                      </h5>
+                      <p className="text-xs text-slate-600 font-semibold leading-relaxed">
+                        {getUIText('seenByBNSDesc', targetLanguage)}
+                      </p>
+                    </div>
+                    <div className="flex-shrink-0 bg-emerald-50 border-2 border-emerald-500 rounded-lg py-1 px-3 text-[#059669] font-mono text-[10px] font-black uppercase tracking-widest rotate-[-3deg] shadow-tiny">
+                      BNS CHECKPOINT
                     </div>
                   </div>
                 </div>
