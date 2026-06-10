@@ -1,0 +1,37 @@
+/**
+ * @license
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@400;500;600;700&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Outfit", "Inter", ui-sans-serif, system-ui, sans-serif;
+  --shadow-tiny: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  
+  --color-v-bg: #FDFCF0;
+  --color-v-dark: #2D3436;
+  --color-v-green: #27AE60;
+  --color-v-green-hover: #1E8449;
+  --color-v-green-light: #2ECC71;
+  --color-v-orange: #E67E22;
+  --color-v-orange-dark: #D35400;
+  --color-v-yellow: #F1C40F;
+  --color-v-blue: #3498DB;
+}
+
+body {
+  background-color: var(--color-v-bg);
+  font-family: var(--font-sans);
+  color: var(--color-v-dark);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Custom soft print CSS */
+@media print {
+  body {
+    background: white;
+    color: black;
+  }
+}
