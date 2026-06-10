@@ -18,7 +18,24 @@ import {
   TooltipProps
 } from 'recharts';
 import { ChildMetrics } from '../types';
-import { TrendingUp, Plus, Trash2, Calendar, Scale, Ruler, Award, CheckCircle2, ChevronRight, HelpCircle } from 'lucide-react';
+import { 
+  TrendingUp, 
+  TrendingDown,
+  Plus, 
+  Trash2, 
+  Calendar, 
+  Scale, 
+  Ruler, 
+  Award, 
+  CheckCircle2, 
+  ChevronRight, 
+  HelpCircle,
+  AlertTriangle,
+  ArrowUpRight,
+  ArrowDownRight,
+  ArrowRight,
+  Activity
+} from 'lucide-react';
 
 interface GrowthMilestone {
   id: string;
@@ -164,6 +181,176 @@ export default function GrowthTracker({ metrics, onUpdateMetrics }: GrowthTracke
   };
 
   const { weightStatus, weightColor, heightStatus, heightColor, std: currentRef } = getGrowthStatus();
+
+  // Detailed Trajectory and clinical slope analysis based on historical logs
+  const getTrajectoryAnalysis = () => {
+    // Collect all unique milestone ages and weights
+    // Make sure to include the active unsaved assessment form if not already captured
+    const combined = [...childMilestones];
+    const hasCurrent = metrics.weightKg > 0 && metrics.heightCm > 0;
+    const exists = childMilestones.some(m => m.ageMonths === currentAgeMonths);
+    if (hasCurrent && !exists) {
+      combined.push({
+        id: 'current-live-temp',
+        childName: displayName,
+        date: 'Current Form',
+        ageMonths: currentAgeMonths,
+        weightKg: metrics.weightKg,
+        heightCm: metrics.heightCm,
+        notes: 'Active consultation metrics'
+      });
+    }
+
+    // Sort ascending by age
+    combined.sort((a, b) => a.ageMonths - b.ageMonths);
+
+    if (combined.length < 2) {
+      return {
+        hasHistory: false,
+        weightTrend: 'baseline' as const,
+        heightTrend: 'baseline' as const,
+        message: 'Establishing baseline trajectory. Log at least 2 milestones to activate comparative velocity checks and stunting/wasting trend alerts.',
+        p1: null,
+        p2: null,
+        weightDiff: 0,
+        heightDiff: 0,
+        weightVelocity: 0,
+        heightVelocity: 0,
+        weightTrendMsg: '',
+        heightTrendMsg: '',
+        ageDiff: 0
+      };
+    }
+
+    // Grab last 2 points
+    const p1 = combined[combined.length - 2]; // older point
+    const p2 = combined[combined.length - 1]; // newer point (usually current or latest)
+
+    const ageDiff = p2.ageMonths - p1.ageMonths;
+    if (ageDiff <= 0) {
+      return {
+        hasHistory: true, // we have data but perhaps same month duplicates
+        weightTrend: 'stable' as const,
+        heightTrend: 'stable' as const,
+        message: 'Multiple records detected in the same age group. Record over different months to active velocity trajectory calculations.',
+        p1,
+        p2,
+        weightDiff: 0,
+        heightDiff: 0,
+        weightVelocity: 0,
+        heightVelocity: 0,
+        weightTrendMsg: 'Stagnant tracking interval - same month logs.',
+        heightTrendMsg: 'Stagnant tracking interval - same month logs.',
+        ageDiff: 0
+      };
+    }
+
+    const weightDiff = p2.weightKg - p1.weightKg;
+    const heightDiff = p2.heightCm - p1.heightCm;
+
+    const weightVelocity = weightDiff / ageDiff; // kg per month
+    const heightVelocity = heightDiff / ageDiff; // cm per month
+
+    // Classify standards for older month (p1)
+    const std1 = GROWTH_STANDARDS.find(s => s.ageMonths === p1.ageMonths) || GROWTH_STANDARDS[0];
+    // Classify standards for newer month (p2)
+    const std2 = GROWTH_STANDARDS.find(s => s.ageMonths === p2.ageMonths) || GROWTH_STANDARDS[0];
+
+    const getBracket = (kg: number, cm: number, std: typeof GROWTH_STANDARDS[0]) => {
+      let wIdx = 2; // 3: Excellent, 2: Healthy, 1: Moderate, 0: Severe
+      if (kg <= std.severeUnderweight) wIdx = 0;
+      else if (kg <= std.moderateUnderweight) wIdx = 1;
+      else if (kg >= std.excellentWeight) wIdx = 3;
+
+      let hIdx = 2;
+      if (cm <= std.severeStunting) hIdx = 0;
+      else if (cm <= std.moderateStunting) hIdx = 1;
+      else if (cm >= std.excellentHeight) hIdx = 3;
+
+      return { wIdx, hIdx };
+    };
+
+    const b1 = getBracket(p1.weightKg, p1.heightCm, std1);
+    const b2 = getBracket(p2.weightKg, p2.heightCm, std2);
+
+    let weightTrend: 'danger' | 'warning' | 'stable' | 'improvement' = 'stable';
+    let heightTrend: 'danger' | 'warning' | 'stable' | 'improvement' = 'stable';
+    let weightTrendMsg = '';
+    let heightTrendMsg = '';
+
+    const getBracketLabel = (idx: number) => {
+      switch (idx) {
+        case 0: return 'Severe Underweight';
+        case 1: return 'Moderate Underweight';
+        case 2: return 'WHO Healthy Median';
+        case 3:
+        default: return 'Excellent/Robust';
+      }
+    };
+
+    const getHeightBracketLabel = (idx: number) => {
+      switch (idx) {
+        case 0: return 'Severely Stunted';
+        case 1: return 'Moderately Stunted';
+        case 2: return 'WHO Healthy Height';
+        case 3:
+        default: return 'Excellent/Robust Height';
+      }
+    };
+
+    // Analyze Weight (Wasting trends risk)
+    if (weightDiff < -0.1) {
+      weightTrend = 'danger'; // dropping absolute weight
+      weightTrendMsg = `🚨 ACTIVE WASTING TREND: Child lost ${Math.abs(weightDiff).toFixed(1)} kg over ${ageDiff} months (Loss velocity: ${(Math.abs(weightVelocity) * 1000).toFixed(0)}g/mo). This indicates acute, sudden undernutrition or serious active illness. Immediate intervention starting with high-calorie relief soups and sardines/protein loading is required.`;
+    } else if (b2.wIdx < b1.wIdx) {
+      weightTrend = 'warning'; // crossing bracket downward
+      weightTrendMsg = `⚠️ DROPPING PERCENTILES (Wasting risk): Growth velocity is failing to keep pace. Child slipped from ${getBracketLabel(b1.wIdx)} down to ${getBracketLabel(b2.wIdx)}. Wasting trends are developing. Check current household food security immediately.`;
+    } else if (weightDiff <= 0.1) {
+      weightTrend = 'warning'; // stagnant weight
+      weightTrendMsg = `⚠️ FLATLINED WEIGHT: Stagnant progress (${weightDiff.toFixed(1)} kg velocity change). Growing kids in this stage should ideally gain 150-250 grams per month. Growth faltering detected.`;
+    } else if (b2.wIdx > b1.wIdx) {
+      weightTrend = 'improvement';
+      weightTrendMsg = `🎉 CATCH-UP WEIGHT GROWTH: Fantastic recovery! Child has climbed WHO curves from ${getBracketLabel(b1.wIdx)} back up to ${getBracketLabel(b2.wIdx)} (+${weightDiff.toFixed(1)} kg total growth). The community nutrition plan is highly effective!`;
+    } else {
+      weightTrend = 'improvement'; // standard steady gain
+      weightTrendMsg = `🟢 HEALTHY VELOCITY: Steady weight trajectory. Gained +${weightDiff.toFixed(1)} kg over ${ageDiff} months (+${(weightVelocity * 1000).toFixed(0)}g/mo), riding parallel to the WHO healthy standard.`;
+    }
+
+    // Analyze Height (Stunting tendencies progression)
+    if (heightDiff < 0) {
+      heightTrend = 'danger';
+      heightTrendMsg = `🚨 HEIGHT PROFILE VARIANCE: Recorded linear stature decreased by ${Math.abs(heightDiff).toFixed(1)} cm. Confirm measures carefully with the pediatric infantometer to rule out error.`;
+    } else if (b2.hIdx < b1.hIdx) {
+      heightTrend = 'danger'; // dropping height bracket (severe chronic)
+      heightTrendMsg = `🚨 PROGRESSIVE CHRONIC STUNTING: Child's stature is severely lagging behind normal velocity, dropping from ${getHeightBracketLabel(b1.hIdx)} down to ${getHeightBracketLabel(b2.hIdx)}. Demands immediate nutrient supplements rich in Zinc, Vitamin A, and Amino Acids (fresh backyard malunggay + eggs).`;
+    } else if (heightDiff <= 0.2) {
+      heightTrend = 'warning'; // stagnant height
+      heightTrendMsg = `⚠️ STAGNANT HEIGHT VELOCITY: arrest in height development (+${heightDiff.toFixed(1)} cm change). Stagnant linear tracking is a major warning of developing chronic stunting. Supplemental feeding must prioritize calcium/protein.`;
+    } else if (b2.hIdx > b1.hIdx) {
+      heightTrend = 'improvement';
+      heightTrendMsg = `🌱 CATCH-UP HEIGHT SPURT: Outstanding linear skeletal recovery! Child climbed WHO height curves from ${getHeightBracketLabel(b1.hIdx)} to ${getHeightBracketLabel(b2.hIdx)} (+${heightDiff.toFixed(1)} cm). Underweight and chronic stunting indicators are actively reversing.`;
+    } else {
+      heightTrend = 'improvement';
+      heightTrendMsg = `🟢 HEALTY HEIGHT DEVELOPMENT: Solid height velocity tracking. Height progressed by +${heightDiff.toFixed(1)} cm (+${heightVelocity.toFixed(1)} cm/mo), following standard WHO growth trajectories safely.`;
+    }
+
+    return {
+      hasHistory: true,
+      weightTrend,
+      heightTrend,
+      weightTrendMsg,
+      heightTrendMsg,
+      p1,
+      p2,
+      weightDiff,
+      heightDiff,
+      weightVelocity,
+      heightVelocity,
+      ageDiff
+    };
+  };
+
+  const trajectory = getTrajectoryAnalysis();
 
   // Add a new milestone record
   const handleAddMilestone = (e: React.FormEvent) => {
@@ -427,6 +614,162 @@ export default function GrowthTracker({ metrics, onUpdateMetrics }: GrowthTracke
             </span>
           </div>
         </div>
+      </div>
+
+      {/* WHO Longitudinal Trajectory Analyzer Panel */}
+      <div className="bg-white rounded-xl border border-slate-200/80 p-4.5 space-y-4">
+        <div className="flex items-center justify-between border-b border-slate-100 pb-2.5">
+          <div className="flex items-center gap-2">
+            <Activity className="w-4 h-4 text-[#C2185B]" />
+            <span className="text-xs font-black uppercase tracking-wider text-slate-800">BNS Trajectory Assessment Companion</span>
+          </div>
+          <span className="text-[9px] bg-slate-100 border border-slate-200 text-slate-600 font-bold px-2 py-0.5 rounded-full uppercase tracking-wider">
+            WHO Velocity Scale
+          </span>
+        </div>
+
+        {!trajectory.hasHistory ? (
+          <div className="text-center py-4 px-3 bg-slate-50/50 border border-dashed border-slate-200 rounded-xl">
+            <HelpCircle className="w-8 h-8 text-slate-300 mx-auto mb-2" />
+            <span className="text-xs font-bold text-slate-700 block">Baseline Mode Active</span>
+            <p className="text-[10px] text-slate-400 mt-1 max-w-md mx-auto leading-relaxed">
+              Log at least 2 milestones in the Registry below to activate comparative velocity checks and stunting/wasting trend alerts.
+            </p>
+          </div>
+        ) : (
+          <div className="space-y-3.5 text-left">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              
+              {/* Weight Trajectory / Wasting Risk Card */}
+              <div className={`p-4 rounded-xl border flex flex-col justify-between space-y-3 ${
+                trajectory.weightTrend === 'danger' ? 'bg-red-50/50 border-red-200' :
+                trajectory.weightTrend === 'warning' ? 'bg-amber-50/40 border-amber-200' :
+                'bg-emerald-50/20 border-emerald-200'
+              }`}>
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[9px] uppercase font-bold text-slate-400 tracking-wider">Weight Velocity Trajectory (Wasting Analysis)</span>
+                    <span className={`text-[8.5px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider ${
+                      trajectory.weightTrend === 'danger' ? 'bg-red-650 text-white animate-pulse' :
+                      trajectory.weightTrend === 'warning' ? 'bg-amber-500 text-white' :
+                      'bg-emerald-600 text-white'
+                    }`}>
+                      {trajectory.weightTrend === 'danger' ? 'Active Wasting' :
+                       trajectory.weightTrend === 'warning' ? 'Faltering/Stagnant' :
+                       'Healthy Track'}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center gap-2.5">
+                    <div className={`p-2 rounded-lg shrink-0 ${
+                      trajectory.weightTrend === 'danger' ? 'bg-red-100 text-red-650' :
+                      trajectory.weightTrend === 'warning' ? 'bg-amber-100 text-amber-700' :
+                      'bg-emerald-100 text-emerald-705'
+                    }`}>
+                      {trajectory.weightTrend === 'danger' ? <TrendingDown className="w-5 h-5 animate-bounce" /> :
+                       trajectory.weightTrend === 'warning' ? <ArrowRight className="w-5 h-5" /> :
+                       <TrendingUp className="w-5 h-5" />}
+                    </div>
+                    <div>
+                      <div className="flex items-baseline gap-1">
+                        <span className="text-base font-black text-slate-850">
+                          {trajectory.weightDiff > 0 ? `+${trajectory.weightDiff.toFixed(1)}` : trajectory.weightDiff.toFixed(1)} kg
+                        </span>
+                        <span className="text-[10px] text-slate-400 font-semibold uppercase">
+                          over {trajectory.ageDiff} mos
+                        </span>
+                      </div>
+                      <div className="text-[9.5px] font-bold text-slate-500">
+                        Monthly Velocity: <strong className={
+                          trajectory.weightTrend === 'danger' ? 'text-red-700' :
+                          trajectory.weightTrend === 'warning' ? 'text-amber-700' :
+                          'text-emerald-700'
+                        }>{(trajectory.weightVelocity * 1000).toFixed(0)}g / month</strong>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <p className="text-[10.5px] font-semibold text-slate-650 leading-relaxed bg-white/60 p-2.5 rounded-lg border border-slate-100/40">
+                  {trajectory.weightTrendMsg}
+                </p>
+              </div>
+
+              {/* Height Trajectory / Stunting Risk Card */}
+              <div className={`p-4 rounded-xl border flex flex-col justify-between space-y-3 ${
+                trajectory.heightTrend === 'danger' ? 'bg-red-50/50 border-red-200' :
+                trajectory.heightTrend === 'warning' ? 'bg-amber-50/40 border-amber-200' :
+                'bg-emerald-50/20 border-emerald-200'
+              }`}>
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[9px] uppercase font-bold text-slate-400 tracking-wider">Height Velocity Trajectory (Stunting Analysis)</span>
+                    <span className={`text-[8.5px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider ${
+                      trajectory.heightTrend === 'danger' ? 'bg-red-650 text-white' :
+                      trajectory.heightTrend === 'warning' ? 'bg-amber-500 text-white' :
+                      'bg-emerald-600 text-white'
+                    }`}>
+                      {trajectory.heightTrend === 'danger' ? 'Stunting Hazard' :
+                       trajectory.heightTrend === 'warning' ? 'Stagnant Height' :
+                       'Optimized Track'}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center gap-2.5">
+                    <div className={`p-2 rounded-lg shrink-0 ${
+                      trajectory.heightTrend === 'danger' ? 'bg-red-100 text-red-650' :
+                      trajectory.heightTrend === 'warning' ? 'bg-amber-100 text-amber-700' :
+                      'bg-emerald-100 text-emerald-705'
+                    }`}>
+                      {trajectory.heightTrend === 'danger' ? <AlertTriangle className="w-5 h-5 animate-pulse text-red-650" /> :
+                       trajectory.heightTrend === 'warning' ? <ArrowRight className="w-5 h-5" /> :
+                       <TrendingUp className="w-5 h-5" />}
+                    </div>
+                    <div>
+                      <div className="flex items-baseline gap-1">
+                        <span className="text-base font-black text-slate-850">
+                          {trajectory.heightDiff > 0 ? `+${trajectory.heightDiff.toFixed(1)}` : trajectory.heightDiff.toFixed(1)} cm
+                        </span>
+                        <span className="text-[10px] text-slate-400 font-semibold uppercase">
+                          over {trajectory.ageDiff} mos
+                        </span>
+                      </div>
+                      <div className="text-[9.5px] font-bold text-slate-500">
+                        Monthly Velocity: <strong className={
+                          trajectory.heightTrend === 'danger' ? 'text-red-700' :
+                          trajectory.heightTrend === 'warning' ? 'text-amber-700' :
+                          'text-emerald-700'
+                        }>+{trajectory.heightVelocity.toFixed(2)} cm / month</strong>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <p className="text-[10.5px] font-semibold text-slate-650 leading-relaxed bg-white/60 p-2.5 rounded-lg border border-slate-100/40">
+                  {trajectory.heightTrendMsg}
+                </p>
+              </div>
+
+            </div>
+
+            {/* Quick Consultation Checklist summary */}
+            <div className="border border-indigo-100 bg-indigo-50/25 rounded-xl p-3 flex items-start gap-2.5">
+              <span className="text-xs shrink-0 mt-0.5 border border-indigo-300 text-indigo-700 w-4 h-4 bg-white font-black rounded-full flex items-center justify-center">i</span>
+              <div className="text-left font-sans">
+                <span className="text-[9.5px] font-extrabold uppercase text-indigo-950 tracking-wider block">BNS Consultational Guidance & Response Action</span>
+                <p className="text-[10px] text-indigo-900 mt-0.5 leading-relaxed font-semibold">
+                  {trajectory.weightTrend === 'danger' || trajectory.heightTrend === 'danger' ? (
+                    "⚠️ HIGH PRIORITY INTERVENTION: Prioritize direct supplementary feeding via the Barangay Captain's Kitchen Board immediately. Ensure local squash, malunggay leaves, eggs, and protein-packed tuna or canned sardines are prescribed."
+                  ) : trajectory.weightTrend === 'warning' || trajectory.heightTrend === 'warning' ? (
+                    "💡 PREVENTIVE CARE: Child is demonstrating stagnant development intervals. Educate caregivers to integrate backyard greens, fresh eggs, and home-brewed nutrient broths to jumpstart velocity."
+                  ) : (
+                    "✨ MAINTENANCE CHECKS: Outstanding progress! Encourage caregivers to sustain local agricultural supplementation and log milestones every 3 months."
+                  )}
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Chart Canvas Card */}

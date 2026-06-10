@@ -490,8 +490,8 @@ Operating in standard reference mode. Registered ${total} children.
                 >
                   <div className="flex items-center gap-2.5 text-left">
                     {isLowStock && (
-                      <div className="text-red-650 shrink-0 select-none" title="Insufficient stock levels for the feeding program!">
-                        <AlertTriangle className="w-4 h-4 fill-red-100" />
+                      <div className="text-red-650 shrink-0 select-none animate-pulse" title="Insufficient stock levels for the feeding program!">
+                        <AlertTriangle className="w-4 h-4 fill-red-100 animate-pulse" />
                       </div>
                     )}
                     <div className="space-y-0.5">
