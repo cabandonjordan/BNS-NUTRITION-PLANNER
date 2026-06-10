@@ -62,3 +62,22 @@ export interface SavedMealPlan {
   nutritionistNote: string;
   stretchingPlan?: StretchingPlan;
 }
+
+export interface CommunalChildCase {
+  id: string;
+  name: string;
+  bnsWorker: string;
+  ageMonths: number;
+  condition: 'Underweight' | 'Wasting' | 'Stunting' | 'Healthy';
+  householdSupplies: string[];
+}
+
+export interface CommunalBatchRecipe {
+  title: string;
+  totalServings: number;
+  aggregatedNeedsSummary: string;
+  scaledIngredients: Array<{ name: string; quantity: string; category: string }>;
+  batchPreparationGuide: string[];
+  dietarySuitability: string;
+}
+

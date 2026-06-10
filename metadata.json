@@ -1,6 +1,6 @@
 {
   "name": "Relief Goods Meal Planner",
-  "description": "An interactive planning assistant for Barangay Nutrition Scholars (BNS) in the Philippines to draft personalized, budget-friendly child meal plans using relief goods and backyard harvests.",
+  "description": "An interactive planning assistant for Barangay Nutrition Scholars (BNS) and Barangay Health Captains (Admins) in the Philippines to draft personalized child meal plans and scale communal kitchen batch recipes using relief goods and backyard harvests.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

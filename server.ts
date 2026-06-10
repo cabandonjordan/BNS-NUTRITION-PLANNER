@@ -191,6 +191,102 @@ Create your responses formatted exactly according to the requested JSON layout.
     }
   });
 
+  // API endpoint for generating communal community kitchen recipes
+  app.post("/api/generate-communal-recipe", async (req, res) => {
+    try {
+      const { cases, warehouseStock } = req.body;
+
+      if (!cases || !warehouseStock) {
+        return res.status(400).json({ error: "Missing required children cases or warehouse stock configuration." });
+      }
+
+      // Quick check on API Key - if missing, we will throw a clear message
+      try {
+        getGemini();
+      } catch (keyErr: any) {
+        return res.status(403).json({ 
+          error: keyErr.message, 
+          needsKey: true 
+        });
+      }
+
+      const gemini = getGemini();
+
+      const prompt = `
+You are a public health nutrition consultant and expert community dietitian analyzing aggregated health case records submitted by multiple Barangay Nutrition Scholars (BNS) in a Philippine village.
+
+Your task is to analyze these collective child cases, detect risk clusters, evaluate available local warehouse relief inventory at the Barangay Hall, and compile a single large-batch strategic recipe for communal kitchen cooking.
+
+CHILD DEPT CASE RECORDS MONITORED:
+${cases.map((c: any, index: number) => `Case ${index + 1} (${c.bnsWorker || "BNS Worker"}): ${c.name}, ${c.ageMonths} months old, Condition: ${c.condition}. Supplies at home: ${c.householdSupplies?.join(", ") || "None."}`).join("\n")}
+
+AVAILABLE WAREHOUSE STOCK INVENTORY AT BARANGAY HALL:
+${warehouseStock.map((s: any) => `- ${s.name}: ${s.quantity} [Category: ${s.category}]`).join("\n")}
+
+You must output a single JSON structured block containing:
+1. "aggregatedNeedsSummary": A concise 3-part strategic summary including:
+   - High-Risk Clusters: Diagnose common nutritional deficiencies across these cases (e.g., "70% of the cases show a severe protein-energy malnutrition risk").
+   - Resource Allocation Advice: Based on the collective pantry shortages observed in children's homes, which relief goods should the Barangay priority-distribute to these specific families this week?
+   - Nutritional focus explanation.
+2. "title": A warm, culturally fitting Filipino large-batch communal recipe (e.g., "Sardinas at Tinapa Lugaw with Fortified Squash Mash", "COMMUNAL GINATAANG MALUNGGAY WITH SARDINE GOLD").
+3. "totalServings": Integer representing the batch size suitable for feeding all monitored children plus a few extra portions (e.g., matching count of cases * 1.5).
+4. "scaledIngredients": An array of ingredients scaled up for a communal kitchen batch, prioritizing using the listed warehouse stocks. Each should contain "name", "quantity", and "category".
+5. "batchPreparationGuide": A clean numbered list of instruction steps for cooking in a community communal kitchen or large vat.
+6. "dietarySuitability": Explicit explanation of why this communal dish is perfectly balanced to treat Underweight, Stunting, and Wasting simultaneously using natural, yard-sourced or relief-pantry ingredients.
+
+Create your responses formatted exactly according to the requested JSON layout.
+`;
+
+      const response = await gemini.models.generateContent({
+        model: "gemini-3.5-flash",
+        contents: prompt,
+        config: {
+          responseMimeType: "application/json",
+          responseSchema: {
+            type: Type.OBJECT,
+            properties: {
+              title: { type: Type.STRING },
+              totalServings: { type: Type.INTEGER },
+              aggregatedNeedsSummary: { type: Type.STRING },
+              scaledIngredients: {
+                type: Type.ARRAY,
+                items: {
+                  type: Type.OBJECT,
+                  properties: {
+                    name: { type: Type.STRING },
+                    quantity: { type: Type.STRING },
+                    category: { type: Type.STRING }
+                  },
+                  required: ["name", "quantity", "category"]
+                }
+              },
+              batchPreparationGuide: {
+                type: Type.ARRAY,
+                items: { type: Type.STRING }
+              },
+              dietarySuitability: { type: Type.STRING }
+            },
+            required: ["title", "totalServings", "aggregatedNeedsSummary", "scaledIngredients", "batchPreparationGuide", "dietarySuitability"]
+          }
+        }
+      });
+
+      const responseText = response.text;
+      if (!responseText) {
+        throw new Error("No response received from the communal cooking engine.");
+      }
+
+      const parsedJSON = JSON.parse(responseText.trim());
+      res.json(parsedJSON);
+
+    } catch (error: any) {
+      console.error("Communal chef server error:", error);
+      res.status(500).json({
+        error: error.message || "An unexpected error occurred while compiling community recipe. Check your API token configuration."
+      });
+    }
+  });
+
   // Health check endpoint
   app.get("/api/health", (req, res) => {
     res.json({ status: "healthy", keyStatus: !!process.env.GEMINI_API_KEY });

@@ -20,7 +20,9 @@ import {
   Heart,
   Loader2,
   ListRestart,
-  Share2
+  Share2,
+  Users,
+  Warehouse
 } from 'lucide-react';
 
 import { ChildMetrics, Ingredient, SavedMealPlan, Recipe, MealPlanResponse } from './types';
@@ -31,6 +33,8 @@ import IngredientSelector, { INITIAL_INGREDIENTS } from './components/Ingredient
 import RecipeCard from './components/RecipeCard';
 import SavedPlansList from './components/SavedPlansList';
 import GrowthTracker from './components/GrowthTracker';
+import LandingPage from './components/LandingPage';
+import CommunityKitchenProcessor from './components/CommunityKitchenProcessor';
 
 const FALLBACK_RECIPES: Recipe[] = [
   {
@@ -220,6 +224,8 @@ export default function App() {
   const [handoutMode, setHandoutMode] = useState<boolean>(false);
   const [targetLanguage, setTargetLanguage] = useState<TargetLanguage>('tl');
   const [foodSafetyMode, setFoodSafetyMode] = useState<boolean>(true);
+  const [currentView, setCurrentView] = useState<'landing' | 'bns' | 'captain'>('landing');
+  const [alertMessage, setAlertMessage] = useState<string | null>(null);
 
   // Load plans from localStorage on boot
   useEffect(() => {
@@ -884,6 +890,147 @@ export default function App() {
     printWindow.document.close();
   };
 
+  if (currentView === 'landing') {
+    return (
+      <div className="min-h-screen bg-[#FDFCF0] flex flex-col font-sans">
+        <LandingPage onSelectRole={(role) => setCurrentView(role)} />
+        
+        {/* Custom state alert modal */}
+        {alertMessage && (
+          <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4">
+            <div className="bg-white rounded-2xl border-2 border-slate-200 p-6 max-w-sm w-full space-y-4 text-slate-800 text-left">
+              <div className="flex items-center gap-3 text-red-600">
+                <AlertCircle className="w-6 h-6 shrink-0" />
+                <span className="font-sans font-black text-xs uppercase tracking-wider">Log Notice</span>
+              </div>
+              <p className="text-xs font-semibold leading-relaxed text-slate-600">{alertMessage}</p>
+              <button
+                type="button"
+                onClick={() => setAlertMessage(null)}
+                className="w-full bg-[#27AE60] hover:bg-emerald-600 text-white py-2.5 rounded-xl text-xs font-black uppercase tracking-wider cursor-pointer"
+              >
+                Understood
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  if (currentView === 'captain') {
+    return (
+      <div className="min-h-screen bg-[#FDFCF0] flex flex-col font-sans text-slate-800 relative">
+        
+        {/* Banner informing about API status */}
+        {!keyStatus && (
+          <div className="bg-[#F1C40F] text-v-dark text-xs py-2.5 px-4 font-bold text-center border-b border-yellow-600 flex items-center justify-center gap-2">
+            <AlertCircle className="w-4 h-4 shrink-0" />
+            <span>Notice: operating in Reference Mode with vetted nutritional recipes based on Philippine Department of Health (DOH) presets.</span>
+          </div>
+        )}
+
+        {/* Main App Navbar for CAPTAIN */}
+        <header className="bg-slate-900 text-white shadow-lg py-4.5 px-6 md:px-8 sticky top-0 z-40">
+          <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
+            
+            <div className="flex items-center gap-3 text-left">
+              <div className="w-10 h-10 bg-v-orange rounded-full flex items-center justify-center text-white shrink-0">
+                <Warehouse className="w-6 h-6 stroke-[2.5]" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="text-[9px] font-black bg-[#CC4A1B] text-white border border-orange-500 px-2 py-0.5 rounded-full uppercase tracking-widest">
+                    SUPERVISOR CONTROL ROOM
+                  </span>
+                  <span className="text-[9px] font-bold text-orange-200 uppercase tracking-widest hidden md:inline">
+                    Barangay San Jose Hall
+                  </span>
+                </div>
+                <h1 className="text-xl md:text-2xl font-black tracking-tight uppercase text-orange-100">Health Captain Board</h1>
+              </div>
+            </div>
+
+            {/* Admin Header controls */}
+            <div className="flex flex-wrap items-center gap-3 w-full sm:w-auto justify-end">
+              {/* Force to BNS Toggle */}
+              <button
+                type="button"
+                onClick={() => setCurrentView('bns')}
+                className="py-2.5 px-4 bg-[#27AE60] hover:bg-[#219653] text-white rounded-xl text-xs font-black uppercase tracking-wider flex items-center gap-2 cursor-pointer transition-colors shrink-0"
+              >
+                <Users className="w-4 h-4" />
+                <span>Scholar Workspace</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setCurrentView('landing')}
+                className="py-2.5 px-4 bg-slate-800 hover:bg-slate-700 text-white border border-slate-700 rounded-xl text-xs font-black uppercase tracking-wider flex items-center gap-1.5 cursor-pointer transition-colors shrink-0"
+              >
+                <span>Back to Landing</span>
+              </button>
+            </div>
+
+          </div>
+        </header>
+
+        {/* Primary Captain Layout Section */}
+        <main className="flex-1 max-w-7xl w-full mx-auto p-4 md:p-6 lg:p-8 space-y-8">
+          
+          {/* Banner introducing coordinator role */}
+          <div className="bg-white rounded-2xl border-2 border-slate-200 p-6 shadow-xs flex flex-col md:flex-row items-start md:items-center justify-between gap-6 text-left">
+            <div className="space-y-1">
+              <div className="inline-flex items-center gap-1.5 bg-orange-50 border border-orange-250 text-v-orange font-extrabold text-[10px] px-2.5 py-0.5 rounded-full uppercase tracking-wider">
+                🛡️ CAPTAIN ACTION CENTER
+              </div>
+              <h2 className="text-xl md:text-2xl font-black font-sans uppercase tracking-tight text-slate-900 mt-2">
+                Barangay Kitchen Feed Planner
+              </h2>
+              <p className="text-xs text-slate-500 font-semibold max-w-2xl leading-relaxed">
+                Log sheets compiled by BNS Field Scholars are processed and summarized below. Run the Community Batch Processor to instantly scale and design nutritional communal meals for child clusters.
+              </p>
+            </div>
+            
+            <div className="shrink-0 flex items-center gap-1.5 bg-slate-50 border border-slate-150 rounded-xl px-4 py-2.5 shadow-inner">
+              <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
+              <span className="text-[10px] font-black uppercase text-slate-600">Sync Sheets Active</span>
+            </div>
+          </div>
+
+          {/* Core Batch Kitchen Module */}
+          <div className="animate-fade-in">
+            <CommunityKitchenProcessor 
+              isDemoMode={isDemoMode} 
+              onAlert={(msg) => setAlertMessage(msg)}
+            />
+          </div>
+
+        </main>
+
+        {/* Custom Alert Modal */}
+        {alertMessage && (
+          <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4">
+            <div className="bg-white rounded-2xl border-2 border-slate-200 p-6 max-w-sm w-full space-y-4 text-slate-800 text-left">
+              <div className="flex items-center gap-3 text-red-650">
+                <AlertCircle className="w-6 h-6 shrink-0" />
+                <span className="font-sans font-black text-xs uppercase tracking-wider">Alert Notice</span>
+              </div>
+              <p className="text-xs font-semibold leading-relaxed text-slate-600">{alertMessage}</p>
+              <button
+                type="button"
+                onClick={() => setAlertMessage(null)}
+                className="w-full bg-[#27AE60] hover:bg-emerald-600 text-white py-2.5 rounded-xl text-xs font-black uppercase tracking-wider cursor-pointer"
+              >
+                Understood
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-[#FDFCF0] flex flex-col font-sans text-v-dark">
       
@@ -917,7 +1064,7 @@ export default function App() {
           </div>
 
           {/* Action Header controls */}
-          <div className="flex items-center gap-3 w-full sm:w-auto justify-end">
+          <div className="flex flex-wrap items-center gap-3 w-full sm:w-auto justify-end">
             
             {/* Quick Demo Toggle */}
             <div className="flex items-center gap-2 bg-[#1E8449] border border-[#2ECC71] rounded-xl px-3 py-1.5 shadow-inner">
@@ -933,12 +1080,30 @@ export default function App() {
 
             <button
               type="button"
+              onClick={() => setCurrentView('captain')}
+              className="py-2.5 px-4 bg-orange-600 hover:bg-orange-650 text-white transition-colors rounded-xl text-xs font-black uppercase tracking-wider flex items-center gap-1.5 cursor-pointer"
+              title="Switch to Captain Board"
+            >
+              <Warehouse className="w-4 h-4" />
+              <span>Supervisor Board</span>
+            </button>
+
+            <button
+              type="button"
               onClick={handleReset}
               className="py-2 px-4 bg-white/10 hover:bg-white/20 border-2 border-white/20 text-white transition-colors rounded-xl text-xs font-bold uppercase tracking-wider flex items-center gap-2 cursor-pointer"
               title="Clear all fields"
             >
               <ListRestart className="w-4 h-4" />
-              <span className="hidden md:inline font-black">Reset Form</span>
+              <span className="hidden md:inline font-black">Reset</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setCurrentView('landing')}
+              className="py-2.5 px-3 bg-white/10 hover:bg-white/20 text-white rounded-xl text-xs font-bold uppercase tracking-wider flex items-center gap-1.5 cursor-pointer"
+            >
+              <span>Landing</span>
             </button>
           </div>
 
