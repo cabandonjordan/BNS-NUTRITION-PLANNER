@@ -22,7 +22,8 @@ import {
   ListRestart,
   Share2,
   Users,
-  Warehouse
+  Warehouse,
+  Smile
 } from 'lucide-react';
 
 import { ChildMetrics, Ingredient, SavedMealPlan, Recipe, MealPlanResponse } from './types';
@@ -227,6 +228,19 @@ export default function App() {
   const [foodSafetyMode, setFoodSafetyMode] = useState<boolean>(true);
   const [currentView, setCurrentView] = useState<'landing' | 'bns' | 'captain'>('landing');
   const [alertMessage, setAlertMessage] = useState<string | null>(null);
+  const [currentParentingTips, setCurrentParentingTips] = useState<string[]>([]);
+
+  const PARENTING_TIPS = [
+    'Feed while playing or storytelling to keep them engaged.',
+    'Offer small, frequent meals instead of 3 large ones.',
+    'Sing a song or make "airplane" noises to make eating fun.',
+    'Let them touch and explore the food with their hands.',
+    'Eat together as a family to model good eating habits.',
+    'Praise them when they try a new food, even just a bite.',
+    'Mix new foods with familiar favorites.',
+    'Keep meal times calm and free from scolding or pressure.',
+    'Use colorful bowls or plates to make the food look appealing.'
+  ];
 
   // Load plans from localStorage on boot
   useEffect(() => {
@@ -264,6 +278,10 @@ export default function App() {
     setError(null);
     setResult(null);
     setSelectedPlanId(null);
+    
+    // Pick 3 random tips
+    const shuffled = [...PARENTING_TIPS].sort(() => 0.5 - Math.random());
+    setCurrentParentingTips(shuffled.slice(0, 3));
 
     const activeIngredients = ingredients.filter(i => i.selected);
     if (activeIngredients.length === 0) {
@@ -358,6 +376,10 @@ export default function App() {
   // Restore history record to widgets
   const handleLoadPlan = (plan: SavedMealPlan) => {
     setMetrics(plan.childMetrics);
+    
+    // Pick 3 random tips
+    const shuffled = [...PARENTING_TIPS].sort(() => 0.5 - Math.random());
+    setCurrentParentingTips(shuffled.slice(0, 3));
     
     // Map existing selections
     const restoredIngredients = ingredients.map(ing => {
@@ -1373,6 +1395,26 @@ export default function App() {
                       </p>
                     </div>
                   </div>
+
+                  {/* Actionable Parenting Tips */}
+                  {currentParentingTips.length > 0 && (
+                    <div className="bg-indigo-50/50 rounded-xl p-4.5 border border-indigo-100 shadow-tiny mt-5 mb-1">
+                      <div className="flex items-center gap-2 mb-3">
+                        <Smile className="w-4 h-4 text-indigo-600" />
+                        <h4 className="font-sans font-black text-xs text-indigo-800 uppercase tracking-widest">
+                          Quick Parenting Tips
+                        </h4>
+                      </div>
+                      <ul className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                        {currentParentingTips.map((tip, idx) => (
+                          <li key={idx} className="flex gap-2 text-xs font-semibold text-slate-700 bg-white p-3 rounded-xl border border-indigo-50 shadow-sm items-start transition-all hover:border-indigo-200 hover:shadow-md">
+                            <span className="text-indigo-400 font-bold shrink-0 mt-0.5">•</span>
+                            <span className="leading-relaxed">{tip}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
                 </div>
               )}
 
