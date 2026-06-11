@@ -28,7 +28,8 @@ import {
   Lock,
   Wifi,
   WifiOff,
-  EyeOff
+  EyeOff,
+  RefreshCw
 } from 'lucide-react';
 
 import { ChildMetrics, Ingredient, SavedMealPlan, Recipe, MealPlanResponse } from './types';
@@ -237,6 +238,9 @@ export default function App() {
   const [isOnline, setIsOnline] = useState<boolean>(navigator.onLine);
   const [privacyMode, setPrivacyMode] = useState<boolean>(false);
   const [isLocked, setIsLocked] = useState<boolean>(false);
+  const [isSyncing, setIsSyncing] = useState<boolean>(false);
+  const [syncTotalCount, setSyncTotalCount] = useState<number>(0);
+  const [syncPendingCount, setSyncPendingCount] = useState<number>(0);
 
   const PARENTING_TIPS = [
     'Feed while playing or storytelling to keep them engaged.',
@@ -423,9 +427,14 @@ export default function App() {
   }, [isOnline]);
 
   const syncPlans = async () => {
+    if (isSyncing) return;
     try {
       const syncQueue: SavedMealPlan[] = await get('syncQueue') || [];
       if (syncQueue.length === 0) return;
+
+      setIsSyncing(true);
+      setSyncTotalCount(syncQueue.length);
+      setSyncPendingCount(syncQueue.length);
 
       const newQueue = [...syncQueue];
       
@@ -440,6 +449,7 @@ export default function App() {
           
           if (response.ok) {
             newQueue.splice(i, 1);
+            setSyncPendingCount(newQueue.length);
           }
         } catch (postError) {
           console.warn('Sync POST failed:', postError);
@@ -454,6 +464,10 @@ export default function App() {
       }
     } catch (err) {
       console.error('Error syncing plans from IndexedDB:', err);
+    } finally {
+      setTimeout(() => {
+        setIsSyncing(false);
+      }, 2500);
     }
   };
 
@@ -1190,6 +1204,34 @@ export default function App() {
   return (
     <div className="min-h-screen bg-[#FDFCF0] flex flex-col font-sans text-v-dark">
       
+      {/* Sync Progress Toast */}
+      <AnimatePresence>
+        {isSyncing && syncTotalCount > 0 && (
+          <motion.div 
+            initial={{ opacity: 0, y: 50, scale: 0.9 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 20, scale: 0.9 }}
+            className="fixed bottom-6 right-6 z-[200] bg-white border-2 border-blue-200 shadow-2xl rounded-2xl p-4 w-72"
+          >
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-[11px] font-black text-blue-800 uppercase tracking-tight flex items-center gap-2">
+                <RefreshCw className="w-4 h-4 text-blue-600 animate-spin" />
+                Syncing Queue to Cloud
+              </span>
+              <span className="text-[10px] font-black text-blue-600 bg-blue-50 px-2 py-0.5 rounded-md border border-blue-200 shadow-inner">
+                {syncTotalCount - syncPendingCount} / {syncTotalCount}
+              </span>
+            </div>
+            <div className="w-full bg-slate-100 rounded-full h-2 overflow-hidden shadow-inner flex">
+              <div 
+                className="bg-blue-600 h-full transition-all duration-300"
+                style={{ width: `${Math.max(5, ((syncTotalCount - syncPendingCount) / syncTotalCount) * 100)}%` }}
+              />
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Offline Banner */}
       {!isOnline && (
         <div className="bg-rose-600 text-white text-xs py-2.5 px-4 font-bold text-center border-b border-rose-800 flex items-center justify-center gap-2">
