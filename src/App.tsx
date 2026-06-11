@@ -5,6 +5,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
+import { get, set } from 'idb-keyval';
 import { 
   Baby, 
   Sparkles, 
@@ -383,7 +384,7 @@ export default function App() {
   };
 
   // Save current formulated plan to logs
-  const handleSavePlan = () => {
+  const handleSavePlan = async () => {
     if (!result) return;
     const newPlan: SavedMealPlan = {
       id: 'plan_' + Date.now(),
@@ -399,6 +400,61 @@ export default function App() {
     setSavedPlans(updated);
     localStorage.setItem('bns_meal_plans_v1', JSON.stringify(updated));
     setSelectedPlanId(newPlan.id);
+
+    // Queue for sync using IndexedDB
+    try {
+      const currentQueue: SavedMealPlan[] = await get('syncQueue') || [];
+      await set('syncQueue', [...currentQueue, newPlan]);
+      
+      // Attempt sync immediately if online
+      if (isOnline) {
+        syncPlans();
+      }
+    } catch (e) {
+      console.error('Failed to add plan to syncQueue:', e);
+    }
+  };
+
+  // Attempt sync when coming back online
+  useEffect(() => {
+    if (isOnline) {
+      syncPlans();
+    }
+  }, [isOnline]);
+
+  const syncPlans = async () => {
+    try {
+      const syncQueue: SavedMealPlan[] = await get('syncQueue') || [];
+      if (syncQueue.length === 0) return;
+
+      const newQueue = [...syncQueue];
+      
+      for (let i = newQueue.length - 1; i >= 0; i--) {
+        const plan = newQueue[i];
+        try {
+          const response = await fetch('/api/sync', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(plan)
+          });
+          
+          if (response.ok) {
+            newQueue.splice(i, 1);
+          }
+        } catch (postError) {
+          console.warn('Sync POST failed:', postError);
+          break; 
+        }
+      }
+      
+      await set('syncQueue', newQueue);
+      
+      if (newQueue.length === 0) {
+        setAlertMessage('All queued plans successfully synced to server.');
+      }
+    } catch (err) {
+      console.error('Error syncing plans from IndexedDB:', err);
+    }
   };
 
   // Delete saved plan from history

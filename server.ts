@@ -337,6 +337,29 @@ Tasks:
     }
   });
 
+  // API endpoint for syncing offline-generated plans
+  app.post("/api/sync", async (req, res) => {
+    try {
+      const plan = req.body;
+      if (!plan || !plan.id) {
+        return res.status(400).json({ error: "Missing required plan payload." });
+      }
+      
+      // MOCK DB save operation: We pretend we saved it into a real database.
+      console.log("Successfully synced plan to 'server':", plan.id);
+      
+      // Simulate slight network delay
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      res.json({ success: true, message: "Plan successfully synchronized." });
+    } catch (error: any) {
+      console.error("Sync API error:", error);
+      res.status(500).json({
+        error: error.message || "An unexpected error occurred while syncing plans."
+      });
+    }
+  });
+
   // Health check endpoint
   app.get("/api/health", (req, res) => {
     res.json({ status: "healthy", keyStatus: !!process.env.GEMINI_API_KEY });
