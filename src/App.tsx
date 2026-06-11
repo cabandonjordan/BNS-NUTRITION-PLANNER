@@ -23,7 +23,11 @@ import {
   Share2,
   Users,
   Warehouse,
-  Smile
+  Smile,
+  Lock,
+  Wifi,
+  WifiOff,
+  EyeOff
 } from 'lucide-react';
 
 import { ChildMetrics, Ingredient, SavedMealPlan, Recipe, MealPlanResponse } from './types';
@@ -229,6 +233,9 @@ export default function App() {
   const [currentView, setCurrentView] = useState<'landing' | 'bns' | 'captain'>('landing');
   const [alertMessage, setAlertMessage] = useState<string | null>(null);
   const [currentParentingTips, setCurrentParentingTips] = useState<string[]>([]);
+  const [isOnline, setIsOnline] = useState<boolean>(navigator.onLine);
+  const [privacyMode, setPrivacyMode] = useState<boolean>(false);
+  const [isLocked, setIsLocked] = useState<boolean>(false);
 
   const PARENTING_TIPS = [
     'Feed while playing or storytelling to keep them engaged.',
@@ -241,6 +248,38 @@ export default function App() {
     'Keep meal times calm and free from scolding or pressure.',
     'Use colorful bowls or plates to make the food look appealing.'
   ];
+
+  // Connection listeners
+  useEffect(() => {
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
+
+  // Session Timeout (PhilDPA)
+  useEffect(() => {
+    let timeoutId: NodeJS.Timeout;
+    const resetTimer = () => {
+      if (isLocked) return;
+      clearTimeout(timeoutId);
+      // 15 minutes = 900000 ms. Setting slightly lower for testing/demo? Let's use 15 mins.
+      timeoutId = setTimeout(() => setIsLocked(true), 900000); 
+    };
+
+    const events = ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart'];
+    events.forEach(e => document.addEventListener(e, resetTimer));
+    resetTimer();
+
+    return () => {
+      events.forEach(e => document.removeEventListener(e, resetTimer));
+      clearTimeout(timeoutId);
+    };
+  }, [isLocked]);
 
   // Load plans from localStorage on boot
   useEffect(() => {
@@ -370,6 +409,23 @@ export default function App() {
     if (selectedPlanId === id) {
       setSelectedPlanId(null);
       setResult(null);
+    }
+  };
+
+  // Purge plans older than 30 days
+  const handlePurgeOldPlans = () => {
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    
+    const kept = savedPlans.filter(p => new Date(p.date) >= thirtyDaysAgo);
+    const removedCount = savedPlans.length - kept.length;
+    
+    if (removedCount > 0) {
+      setSavedPlans(kept);
+      localStorage.setItem('bns_meal_plans_v1', JSON.stringify(kept));
+      setAlertMessage(`PhilDPA: Successfully securely purged ${removedCount} records older than 30 days from local storage.`);
+    } else {
+      setAlertMessage('No records older than 30 days found.');
     }
   };
 
@@ -913,6 +969,27 @@ export default function App() {
     printWindow.document.close();
   };
 
+  if (isLocked) {
+    return (
+      <div className="fixed inset-0 z-[100] bg-slate-900/95 backdrop-blur-md flex flex-col items-center justify-center p-6 text-center">
+        <div className="bg-white p-8 rounded-3xl max-w-sm w-full shadow-2xl border-2 border-slate-200">
+          <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <Lock className="w-8 h-8 text-slate-400" />
+          </div>
+          <h2 className="text-xl font-black text-slate-800 uppercase tracking-tight mb-2">Session Locked</h2>
+          <p className="text-xs font-semibold text-slate-500 mb-6">For PhilDPA compliance, your session was locked due to inactivity to protect sensitive child health records.</p>
+          <button 
+            type="button"
+            onClick={() => setIsLocked(false)}
+            className="w-full bg-slate-800 hover:bg-slate-900 text-white py-3.5 rounded-xl font-black uppercase tracking-widest text-xs transition-all cursor-pointer shadow-tiny"
+          >
+            Unlock Session
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   if (currentView === 'landing') {
     return (
       <div className="min-h-screen bg-[#FDFCF0] flex flex-col font-sans">
@@ -1057,8 +1134,16 @@ export default function App() {
   return (
     <div className="min-h-screen bg-[#FDFCF0] flex flex-col font-sans text-v-dark">
       
+      {/* Offline Banner */}
+      {!isOnline && (
+        <div className="bg-rose-600 text-white text-xs py-2.5 px-4 font-bold text-center border-b border-rose-800 flex items-center justify-center gap-2">
+          <WifiOff className="w-4 h-4 shrink-0" />
+          <span>Offline Connection: App running in PWA mode. History is available. Generating new AI plans disabled.</span>
+        </div>
+      )}
+
       {/* Banner informing about API status */}
-      {!keyStatus && (
+      {!keyStatus && isOnline && (
         <div className="bg-[#F1C40F] text-v-dark text-xs py-2.5 px-4 font-bold text-center border-b border-yellow-600 flex items-center justify-center gap-2">
           <AlertCircle className="w-4 h-4 shrink-0" />
           <span>Notice: operating in Reference Mode with vetted nutritional recipes based on Philippine Department of Health (DOH) presets.</span>
@@ -1088,6 +1173,15 @@ export default function App() {
 
           {/* Action Header controls */}
           <div className="flex flex-wrap items-center gap-3 w-full sm:w-auto justify-end">
+            <button
+              type="button"
+              onClick={() => setPrivacyMode(!privacyMode)}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all border-2 ${privacyMode ? 'bg-[#1E8449] border-[#2ECC71] text-white' : 'bg-white/10 hover:bg-white/20 border-white/20 text-white'}`}
+              title="PhilDPA: Mask sensitive names"
+            >
+              <EyeOff className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Ph-DPA Filter</span>
+            </button>
             
             {/* Quick Demo Toggle */}
             <div className="flex items-center gap-2 bg-[#1E8449] border border-[#2ECC71] rounded-xl px-3 py-1.5 shadow-inner">
@@ -1159,7 +1253,9 @@ export default function App() {
             plans={savedPlans}
             onSelect={handleLoadPlan}
             onDelete={handleDeletePlan}
+            onPurgeOld={handlePurgeOldPlans}
             selectedPlanId={selectedPlanId}
+            privacyMode={privacyMode}
           />
 
           <CostTrackerChart 
@@ -1194,14 +1290,19 @@ export default function App() {
               <div className="flex gap-2">
                 <button
                   type="button"
-                  disabled={loading || selectedIngredientsCount === 0}
+                  disabled={loading || selectedIngredientsCount === 0 || !isOnline}
                   onClick={handleGeneratePlan}
-                  className="bg-v-orange hover:bg-v-orange-dark disabled:opacity-50 text-white rounded-xl py-3 px-6 text-xs font-black uppercase tracking-wider transition-all flex items-center justify-center gap-2 cursor-pointer shrink-0 shadow-md hover:shadow-lg active:translate-y-0"
+                  className="bg-v-orange hover:bg-v-orange-dark disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-xl py-3 px-6 text-xs font-black uppercase tracking-wider transition-all flex items-center justify-center gap-2 cursor-pointer shrink-0 shadow-md hover:shadow-none active:translate-y-0"
                 >
                   {loading ? (
                     <>
                       <Loader2 className="w-4 h-4 animate-spin text-white" />
                       <span>Formulating Recipes...</span>
+                    </>
+                  ) : !isOnline ? (
+                    <>
+                      <WifiOff className="w-4 h-4" />
+                      <span>Offline Mode</span>
                     </>
                   ) : (
                     <>

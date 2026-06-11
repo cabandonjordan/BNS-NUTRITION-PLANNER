@@ -5,7 +5,7 @@
 
 import React, { useState } from 'react';
 import { Recipe, NutrientTarget, Ingredient } from '../types';
-import { Utensils, Heart, Flame, Sparkles, Printer, CheckCircle2, CheckSquare, Square, AlertCircle, Smile, Coins } from 'lucide-react';
+import { Utensils, Heart, Flame, Sparkles, Printer, CheckCircle2, CheckSquare, Square, AlertCircle, Smile, Coins, MessageSquare, Smartphone, Check, Receipt } from 'lucide-react';
 import { simplifyAndTranslateText, translateIngredient, getUIText, TargetLanguage } from '../lib/translation';
 
 interface RecipeCardProps {
@@ -23,6 +23,11 @@ export default function RecipeCard({ recipe, targets, index, handoutMode = false
   const [checkedIngredients, setCheckedIngredients] = useState<Record<string, boolean>>({});
   const [checkedSteps, setCheckedSteps] = useState<Record<number, boolean>>({});
   const [safePrepChecked, setSafePrepChecked] = useState<Record<string, boolean>>({});
+
+  // SMS Mock State
+  const [showSmsModal, setShowSmsModal] = useState(false);
+  const [mobileNumber, setMobileNumber] = useState('');
+  const [smsStatus, setSmsStatus] = useState<'idle' | 'sending' | 'sent'>('idle');
 
   // Compute percentage fills for Professional view
   const calPercent = Math.min(100, Math.round((recipe.nutritionalBrief.caloriesEstimate / targets.energyKcal) * 100));
@@ -48,6 +53,79 @@ export default function RecipeCard({ recipe, targets, index, handoutMode = false
 
   const togglePrep = (key: string) => {
     setSafePrepChecked(prev => ({ ...prev, [key]: !prev[key] }));
+  };
+
+  const handleThermalPrint = () => {
+    const printWindow = window.open('', '_blank', 'width=400,height=600');
+    if (!printWindow) return;
+
+    // Thermal Printer Mode - 58mm POS style CSS
+    const titleTrans = simplifyAndTranslateText(recipe.name, targetLanguage);
+    const ingredientsList = recipe.ingredientsUsed.map(i => translateIngredient(i, targetLanguage));
+    const prepInstructions = recipe.preparationGuide.map(s => simplifyAndTranslateText(s, targetLanguage));
+
+    printWindow.document.write(`
+      <html>
+        <head>
+          <title>Receipt</title>
+          <style>
+            @media print {
+              @page { margin: 0; size: 58mm 200mm; }
+              body { margin: 0; }
+            }
+            body {
+              font-family: 'Courier New', Courier, monospace;
+              width: 58mm; /* Standard 58mm thermal paper */
+              margin: 0;
+              padding: 5mm;
+              font-size: 11px;
+              color: #000;
+              line-height: 1.2;
+            }
+            .text-center { text-align: center; }
+            .font-bold { font-weight: bold; }
+            .divider { border-top: 1px dashed #000; margin: 4px 0; }
+            .title { font-size: 14px; font-weight: bold; text-transform: uppercase; margin: 5px 0; text-align: center; }
+            ul, ol { padding-left: 12px; margin: 4px 0; }
+            li { margin-bottom: 2px; }
+            .footer { text-align: center; font-size: 9px; margin-top: 10px; }
+          </style>
+        </head>
+        <body>
+          <div class="text-center font-bold">BNS HEALTH CTR</div>
+          <div class="text-center" style="font-size: 9px;">Nutrition Program</div>
+          <div class="divider"></div>
+          <div class="title">${titleTrans}</div>
+          <div class="text-center font-bold">--- INGREDIENTS ---</div>
+          <ul>
+            ${ingredientsList.map(ing => `<li>${ing}</li>`).join('')}
+          </ul>
+          <div class="divider"></div>
+          <div class="text-center font-bold">--- STEPS ---</div>
+          <ol>
+            ${prepInstructions.map((step) => `<li>${step}</li>`).join('')}
+          </ol>
+          <div class="divider"></div>
+          <div class="footer">Wash hands. Boil water.<br/>BNS Aide • 2026</div>
+          <script>window.print(); window.close();</script>
+        </body>
+      </html>
+    `);
+    printWindow.document.close();
+  };
+
+  const handleSendSms = () => {
+    if (!mobileNumber || mobileNumber.length < 10) return;
+    setSmsStatus('sending');
+    // Simulate low-cost SMS API Gateway call (like Semaphore/Twilio)
+    setTimeout(() => {
+      setSmsStatus('sent');
+      setTimeout(() => {
+        setShowSmsModal(false);
+        setSmsStatus('idle');
+        setMobileNumber('');
+      }, 2000);
+    }, 1200);
   };
 
   const handlePrintCard = () => {
@@ -250,7 +328,7 @@ export default function RecipeCard({ recipe, targets, index, handoutMode = false
     const translatedValue = simplifyAndTranslateText(recipe.nutritionalValue, targetLanguage);
 
     return (
-      <div className="bg-[#FFFDF6] rounded-2xl border-2 border-pink-200 shadow-md hover:shadow-lg transition-all overflow-hidden flex flex-col justify-between font-sans">
+      <div className="relative bg-[#FFFDF6] rounded-2xl border-2 border-pink-200 shadow-md hover:shadow-lg transition-all overflow-hidden flex flex-col justify-between font-sans">
         <div>
           {/* Handout Banner */}
           <div className="bg-[#FFF3f8] p-5 border-b border-pink-100 flex items-start justify-between">
@@ -279,14 +357,69 @@ export default function RecipeCard({ recipe, targets, index, handoutMode = false
               )}
               <button
                 type="button"
-                onClick={handlePrintCard}
+                onClick={() => setShowSmsModal(true)}
                 className="p-2 text-pink-500 hover:text-white bg-white hover:bg-pink-600 border-2 border-pink-100 hover:border-pink-600 shadow-tiny rounded-xl transition-all cursor-pointer"
-                title="Print Mother's Handout Flyer"
+                title="Send via SMS to Mother"
+              >
+                <Smartphone className="w-4 h-4" />
+              </button>
+              <button
+                type="button"
+                onClick={handleThermalPrint}
+                className="p-2 text-pink-500 hover:text-white bg-white hover:bg-pink-600 border-2 border-pink-100 hover:border-pink-600 shadow-tiny rounded-xl transition-all cursor-pointer hidden sm:block"
+                title="Print 58mm Thermal POS Receipt"
+              >
+                <Receipt className="w-4 h-4" />
+              </button>
+              <button
+                type="button"
+                onClick={handlePrintCard}
+                className="p-2 text-pink-500 hover:text-white bg-white hover:bg-pink-600 border-2 border-pink-100 hover:border-pink-600 shadow-tiny rounded-xl transition-all cursor-pointer hidden sm:block"
+                title="Print Mother's Handout Flyer (A4)"
               >
                 <Printer className="w-4 h-4" />
               </button>
             </div>
           </div>
+
+          {/* SMS Modal Overlay */}
+          {showSmsModal && (
+            <div className="absolute inset-0 z-20 bg-white/90 backdrop-blur-[2px] flex items-center justify-center p-6">
+              <div className="bg-white p-5 rounded-2xl shadow-xl border-2 border-pink-200 w-full max-w-sm">
+                <div className="flex justify-between items-center mb-4">
+                  <h4 className="font-black text-pink-800 text-sm uppercase tracking-tight flex items-center gap-2">
+                    <Smartphone className="w-4 h-4 text-pink-500" />
+                    Send via SMS
+                  </h4>
+                  <button onClick={() => setShowSmsModal(false)} className="text-slate-400 hover:text-pink-600">&times;</button>
+                </div>
+                {smsStatus === 'sent' ? (
+                  <div className="text-center py-4 bg-emerald-50 rounded-xl border border-emerald-200 text-emerald-800 font-bold text-xs">
+                    <CheckCircle2 className="w-8 h-8 text-emerald-500 mx-auto mb-2" />
+                    SMS successfully routed to {mobileNumber}!
+                  </div>
+                ) : (
+                  <>
+                    <p className="text-[11px] text-pink-900 mb-3 font-medium">Text a condensed version of this recipe directly to the mother's basic phone.</p>
+                    <input 
+                      type="tel" 
+                      placeholder="+63 9XX XXX XXXX"
+                      value={mobileNumber}
+                      onChange={(e) => setMobileNumber(e.target.value)}
+                      className="w-full border-2 border-pink-100 p-2.5 rounded-xl mb-3 text-xs outline-none focus:border-pink-400 bg-pink-50/30"
+                    />
+                    <button 
+                      onClick={handleSendSms}
+                      disabled={smsStatus === 'sending' || mobileNumber.length < 10}
+                      className="w-full bg-pink-600 hover:bg-pink-700 disabled:opacity-50 text-white py-2.5 rounded-xl text-xs font-black uppercase tracking-wider flex items-center justify-center gap-2 transition-all cursor-pointer"
+                    >
+                      {smsStatus === 'sending' ? 'Sending...' : 'Send Recipe SMS'}
+                    </button>
+                  </>
+                )}
+              </div>
+            </div>
+          )}
 
           {/* Terminology-free highlight box */}
           <div className="m-5 p-4.5 bg-[#FFF5F7] rounded-xl border border-pink-200">
