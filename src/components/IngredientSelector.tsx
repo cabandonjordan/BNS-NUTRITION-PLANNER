@@ -14,20 +14,20 @@ interface IngredientSelectorProps {
 
 export const INITIAL_INGREDIENTS: Ingredient[] = [
   // Relief Packs
-  { id: 'nfa_rice', name: 'NFA Rice', category: 'relief', unit: 'kg', count: 1, selected: true },
-  { id: 'sardines', name: 'Canned Sardines (Tomato Sauce)', category: 'relief', unit: 'can(s)', count: 2, selected: true },
-  { id: 'canned_tuna', name: 'Canned Tuna (Oil / Flakes)', category: 'relief', unit: 'can(s)', count: 1, selected: false },
-  { id: 'corned_beef', name: 'Canned Corned Beef', category: 'relief', unit: 'can(s)', count: 1, selected: false },
-  { id: 'instant_noodles', name: 'Instant Noodles (Chicken/Beef)', category: 'relief', unit: 'pack(s)', count: 2, selected: false },
-  { id: 'powdered_milk', name: 'Powdered Milk (e.g. Bear Brand)', category: 'relief', unit: 'pack(s)', count: 1, selected: false },
+  { id: 'nfa_rice', name: 'NFA Rice', category: 'relief', unit: 'kg', count: 1, selected: true, unitCost: 45 },
+  { id: 'sardines', name: 'Canned Sardines (Tomato Sauce)', category: 'relief', unit: 'can(s)', count: 2, selected: true, unitCost: 20 },
+  { id: 'canned_tuna', name: 'Canned Tuna (Oil / Flakes)', category: 'relief', unit: 'can(s)', count: 1, selected: false, unitCost: 35 },
+  { id: 'corned_beef', name: 'Canned Corned Beef', category: 'relief', unit: 'can(s)', count: 1, selected: false, unitCost: 50 },
+  { id: 'instant_noodles', name: 'Instant Noodles (Chicken/Beef)', category: 'relief', unit: 'pack(s)', count: 2, selected: false, unitCost: 12 },
+  { id: 'powdered_milk', name: 'Powdered Milk (e.g. Bear Brand)', category: 'relief', unit: 'pack(s)', count: 1, selected: false, unitCost: 70 },
   
   // Local Backyard/Garden Harvest
-  { id: 'malunggay', name: 'Malunggay Leaves (Moringa)', category: 'local', unit: 'bundle(s)', count: 1, selected: true },
-  { id: 'kalabasa', name: 'Squash (Kalabasa)', category: 'local', unit: 'slice/whole', count: 1, selected: true },
-  { id: 'egg', name: 'Fresh Chicken Egg', category: 'local', unit: 'pcs', count: 2, selected: true },
-  { id: 'kamote', name: 'Kamote (Sweet Potato)', category: 'local', unit: 'pcs', count: 2, selected: false },
-  { id: 'kamote_tops', name: 'Kamote Tops (Leaves)', category: 'local', unit: 'bundle(s)', count: 1, selected: false },
-  { id: 'soy_sauce', name: 'Toyo or Patis (Basic Seasoning)', category: 'pantry', unit: 'small bottle', count: 1, selected: false },
+  { id: 'malunggay', name: 'Malunggay Leaves (Moringa)', category: 'local', unit: 'bundle(s)', count: 1, selected: true, unitCost: 5 },
+  { id: 'kalabasa', name: 'Squash (Kalabasa)', category: 'local', unit: 'slice/whole', count: 1, selected: true, unitCost: 25 },
+  { id: 'egg', name: 'Fresh Chicken Egg', category: 'local', unit: 'pcs', count: 2, selected: true, unitCost: 8 },
+  { id: 'kamote', name: 'Kamote (Sweet Potato)', category: 'local', unit: 'pcs', count: 2, selected: false, unitCost: 15 },
+  { id: 'kamote_tops', name: 'Kamote Tops (Leaves)', category: 'local', unit: 'bundle(s)', count: 1, selected: false, unitCost: 10 },
+  { id: 'soy_sauce', name: 'Toyo or Patis (Basic Seasoning)', category: 'pantry', unit: 'small bottle', count: 1, selected: false, unitCost: 15 },
 ];
 
 export default function IngredientSelector({ ingredients, onChange }: IngredientSelectorProps) {

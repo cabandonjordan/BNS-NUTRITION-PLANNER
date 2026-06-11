@@ -35,6 +35,7 @@ import SavedPlansList from './components/SavedPlansList';
 import GrowthTracker from './components/GrowthTracker';
 import LandingPage from './components/LandingPage';
 import CommunityKitchenProcessor from './components/CommunityKitchenProcessor';
+import CostTrackerChart from './components/CostTrackerChart';
 
 const FALLBACK_RECIPES: Recipe[] = [
   {
@@ -1139,6 +1140,11 @@ export default function App() {
             selectedPlanId={selectedPlanId}
           />
 
+          <CostTrackerChart 
+            plans={savedPlans}
+            allIngredients={ingredients}
+          />
+
         </div>
 
         {/* Right Column: Inventory & Generation Results - Col-8 */}
@@ -1373,7 +1379,7 @@ export default function App() {
               {/* 3 recipes list */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {result.recipes.map((r, i) => (
-                  <RecipeCard key={r.id} recipe={r} targets={targetNutrients} index={i} handoutMode={handoutMode} targetLanguage={targetLanguage} />
+                  <RecipeCard key={r.id} recipe={r} targets={targetNutrients} index={i} handoutMode={handoutMode} targetLanguage={targetLanguage} allIngredients={ingredients} />
                 ))}
               </div>
 

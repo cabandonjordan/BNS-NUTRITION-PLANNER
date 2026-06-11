@@ -25,6 +25,7 @@ export interface Ingredient {
   unit: string;
   count: number;
   selected: boolean;
+  unitCost?: number;
 }
 
 export interface Recipe {

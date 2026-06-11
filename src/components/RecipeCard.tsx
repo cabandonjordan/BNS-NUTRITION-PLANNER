@@ -4,8 +4,8 @@
  */
 
 import React, { useState } from 'react';
-import { Recipe, NutrientTarget } from '../types';
-import { Utensils, Heart, Flame, Sparkles, Printer, CheckCircle2, CheckSquare, Square, AlertCircle, Smile } from 'lucide-react';
+import { Recipe, NutrientTarget, Ingredient } from '../types';
+import { Utensils, Heart, Flame, Sparkles, Printer, CheckCircle2, CheckSquare, Square, AlertCircle, Smile, Coins } from 'lucide-react';
 import { simplifyAndTranslateText, translateIngredient, getUIText, TargetLanguage } from '../lib/translation';
 
 interface RecipeCardProps {
@@ -15,9 +15,10 @@ interface RecipeCardProps {
   index: number;
   handoutMode?: boolean;
   targetLanguage?: TargetLanguage;
+  allIngredients?: Ingredient[];
 }
 
-export default function RecipeCard({ recipe, targets, index, handoutMode = false, targetLanguage = 'en' }: RecipeCardProps) {
+export default function RecipeCard({ recipe, targets, index, handoutMode = false, targetLanguage = 'en', allIngredients = [] }: RecipeCardProps) {
   // Track completed ingredients and step checklists in Mother's Handout Mode
   const [checkedIngredients, setCheckedIngredients] = useState<Record<string, boolean>>({});
   const [checkedSteps, setCheckedSteps] = useState<Record<number, boolean>>({});
@@ -27,6 +28,15 @@ export default function RecipeCard({ recipe, targets, index, handoutMode = false
   const calPercent = Math.min(100, Math.round((recipe.nutritionalBrief.caloriesEstimate / targets.energyKcal) * 100));
   const protPercent = Math.min(100, Math.round((recipe.nutritionalBrief.proteinEstimate / targets.proteinG) * 100));
   const ironPercent = Math.min(100, Math.round((recipe.nutritionalBrief.ironEstimate / targets.ironMg) * 100));
+
+  // Compute estimated cost
+  const totalCost = recipe.ingredientsUsed.reduce((sum, ingName) => {
+    // Find matching ingredient by name or partial name match
+    const found = allIngredients.find(
+      (avail) => ingName.toLowerCase().includes(avail.name.toLowerCase()) || avail.name.toLowerCase().includes(ingName.toLowerCase())
+    );
+    return sum + (found?.unitCost || 0);
+  }, 0);
 
   const toggleIngredient = (ingName: string) => {
     setCheckedIngredients(prev => ({ ...prev, [ingName]: !prev[ingName] }));
@@ -257,14 +267,25 @@ export default function RecipeCard({ recipe, targets, index, handoutMode = false
                 </h3>
               </div>
             </div>
-            <button
-              type="button"
-              onClick={handlePrintCard}
-              className="p-2 text-pink-500 hover:text-white bg-white hover:bg-pink-600 border-2 border-pink-100 hover:border-pink-600 shadow-tiny rounded-xl transition-all cursor-pointer"
-              title="Print Mother's Handout Flyer"
-            >
-              <Printer className="w-4 h-4" />
-            </button>
+            
+            <div className="flex items-center gap-2">
+              {totalCost > 0 && (
+                <div className="flex flex-col items-end mr-1 text-right">
+                  <span className="text-[9px] font-black uppercase text-pink-400 tracking-wider">Est. Budget</span>
+                  <span className="text-xs font-black text-pink-600 flex items-center gap-1">
+                    <Coins className="w-3.5 h-3.5" /> ₱{totalCost.toFixed(0)}
+                  </span>
+                </div>
+              )}
+              <button
+                type="button"
+                onClick={handlePrintCard}
+                className="p-2 text-pink-500 hover:text-white bg-white hover:bg-pink-600 border-2 border-pink-100 hover:border-pink-600 shadow-tiny rounded-xl transition-all cursor-pointer"
+                title="Print Mother's Handout Flyer"
+              >
+                <Printer className="w-4 h-4" />
+              </button>
+            </div>
           </div>
 
           {/* Terminology-free highlight box */}
@@ -453,14 +474,25 @@ export default function RecipeCard({ recipe, targets, index, handoutMode = false
               <h3 className="font-sans font-black text-sm text-v-dark uppercase tracking-tight">{recipe.name}</h3>
             </div>
           </div>
-          <button
-            type="button"
-            onClick={handlePrintCard}
-            className="p-2 text-slate-400 hover:text-v-green bg-white border-2 border-slate-100 hover:border-v-green/45 shadow-xs rounded-xl transition-all cursor-pointer"
-            title="Print recipe handout for parent"
-          >
-            <Printer className="w-4 h-4" />
-          </button>
+          
+          <div className="flex items-center gap-2">
+            {totalCost > 0 && (
+              <div className="flex flex-col items-end mr-1 text-right">
+                <span className="text-[9px] font-black uppercase text-slate-400 tracking-wider">Est. Cost</span>
+                <span className="text-xs font-black text-emerald-600 flex items-center gap-1">
+                  <Coins className="w-3.5 h-3.5" /> ₱{totalCost.toFixed(0)}
+                </span>
+              </div>
+            )}
+            <button
+              type="button"
+              onClick={handlePrintCard}
+              className="p-2 text-slate-400 hover:text-v-green bg-white border-2 border-slate-100 hover:border-v-green/45 shadow-xs rounded-xl transition-all cursor-pointer"
+              title="Print recipe handout for parent"
+            >
+              <Printer className="w-4 h-4" />
+            </button>
+          </div>
         </div>
 
         {/* Nutritional Fill bar graph */}
