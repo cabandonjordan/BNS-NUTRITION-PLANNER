@@ -65,20 +65,11 @@ export default function LandingPage({ onSelectRole }: LandingPageProps) {
               <button
                 type="button"
                 onClick={() => onSelectRole('bns')}
-                className="bg-[#27AE60] hover:bg-[#219653] text-white rounded-xl py-4 px-8 text-xs font-black uppercase tracking-widest transition-all cursor-pointer shadow-md hover:shadow-lg active:translate-y-0.5 flex items-center justify-center gap-2"
+                className="bg-[#27AE60] hover:bg-[#219653] text-white rounded-xl py-4 px-8 text-xs font-black uppercase tracking-widest transition-all cursor-pointer shadow-md hover:shadow-lg active:translate-y-0.5 flex items-center justify-center gap-2 w-full sm:w-auto"
               >
                 <Users className="w-4 h-4 stroke-[2.5]" />
                 <span>BNS Login (Field Scholar)</span>
                 <ArrowRight className="w-4 h-4" />
-              </button>
-
-              <button
-                type="button"
-                onClick={() => onSelectRole('captain')}
-                className="bg-v-orange hover:bg-v-orange-dark text-white rounded-xl py-4 px-8 text-xs font-black uppercase tracking-widest transition-all cursor-pointer shadow-md hover:shadow-lg active:translate-y-0.5 flex items-center justify-center gap-2 border border-orange-500/10"
-              >
-                <Warehouse className="w-4 h-4 stroke-[2.5]" />
-                <span>Barangay Admin Login (Supervisor)</span>
               </button>
 
             </div>
@@ -217,14 +208,6 @@ export default function LandingPage({ onSelectRole }: LandingPageProps) {
                   );
                 })}
               </ul>
-
-              <button
-                type="button"
-                onClick={() => onSelectRole('captain')}
-                className="w-full bg-v-orange hover:bg-v-orange-dark text-white py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-colors cursor-pointer"
-              >
-                Access Supervisor Control Panel
-              </button>
             </div>
 
           </div>
@@ -284,9 +267,14 @@ export default function LandingPage({ onSelectRole }: LandingPageProps) {
       {/* Community Security & Trust Section */}
       <section className="bg-slate-900 text-white py-16 px-6">
         <div className="max-w-4xl mx-auto text-center space-y-6">
-          <div className="w-12 h-12 rounded-full bg-emerald-500/10 text-emerald-400 flex items-center justify-center mx-auto border border-emerald-500/25">
+          <button 
+            type="button"
+            onClick={() => onSelectRole('captain')}
+            className="w-12 h-12 rounded-full bg-emerald-500/10 text-emerald-400 flex items-center justify-center mx-auto border border-emerald-500/25 cursor-default hover:bg-emerald-500/20 transition-colors"
+            title="Secure Community Gateway"
+          >
             <Lock className="w-6 h-6" />
-          </div>
+          </button>
 
           <h3 className="text-xl md:text-2xl font-sans font-black uppercase tracking-tight text-white">
             🏡 Community Security, Compliance & Trust Protocol
