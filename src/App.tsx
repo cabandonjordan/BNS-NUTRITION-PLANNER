@@ -241,6 +241,7 @@ export default function App() {
   const [isSyncing, setIsSyncing] = useState<boolean>(false);
   const [syncTotalCount, setSyncTotalCount] = useState<number>(0);
   const [syncPendingCount, setSyncPendingCount] = useState<number>(0);
+  const [showOnlineToast, setShowOnlineToast] = useState<boolean>(false);
 
   const PARENTING_TIPS = [
     'Feed while playing or storytelling to keep them engaged.',
@@ -256,7 +257,11 @@ export default function App() {
 
   // Connection listeners
   useEffect(() => {
-    const handleOnline = () => setIsOnline(true);
+    const handleOnline = () => {
+      setIsOnline(true);
+      setShowOnlineToast(true);
+      setTimeout(() => setShowOnlineToast(false), 5000);
+    };
     const handleOffline = () => setIsOnline(false);
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
@@ -1211,23 +1216,44 @@ export default function App() {
             initial={{ opacity: 0, y: 50, scale: 0.9 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 20, scale: 0.9 }}
-            className="fixed bottom-6 right-6 z-[200] bg-white border-2 border-blue-200 shadow-2xl rounded-2xl p-4 w-72"
+            className="fixed bottom-6 right-6 z-[200] bg-slate-900 border border-slate-700 shadow-2xl rounded-2xl p-5 w-80 font-mono text-emerald-400"
           >
-            <div className="flex items-center justify-between mb-3">
-              <span className="text-[11px] font-black text-blue-800 uppercase tracking-tight flex items-center gap-2">
-                <RefreshCw className="w-4 h-4 text-blue-600 animate-spin" />
-                Syncing Queue to Cloud
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-[10px] font-bold uppercase tracking-widest flex items-center gap-2 text-emerald-300">
+                <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                DOH Secure Uplink Active
               </span>
-              <span className="text-[10px] font-black text-blue-600 bg-blue-50 px-2 py-0.5 rounded-md border border-blue-200 shadow-inner">
+              <span className="text-[10px] font-bold bg-slate-800 px-2 py-0.5 rounded border border-emerald-900">
                 {syncTotalCount - syncPendingCount} / {syncTotalCount}
               </span>
             </div>
-            <div className="w-full bg-slate-100 rounded-full h-2 overflow-hidden shadow-inner flex">
+            <p className="text-[9px] text-slate-400 mb-3 uppercase tracking-wider">Transmitting PhilDPA-compliant records to Central DB</p>
+            <div className="w-full bg-slate-800 rounded-full h-1.5 overflow-hidden flex">
               <div 
-                className="bg-blue-600 h-full transition-all duration-300"
+                className="bg-emerald-500 h-full transition-all duration-300 shadow-[0_0_8px_rgba(16,185,129,0.8)]"
                 style={{ width: `${Math.max(5, ((syncTotalCount - syncPendingCount) / syncTotalCount) * 100)}%` }}
               />
             </div>
+            <div className="mt-2 text-[8px] text-emerald-600 uppercase tracking-widest text-right">
+              {syncPendingCount === 0 ? "Transmission Complete" : "Streaming Packets..."}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Online Transition Toast */}
+      <AnimatePresence>
+        {showOnlineToast && !isSyncing && (
+          <motion.div 
+            initial={{ opacity: 0, y: -50, scale: 0.9 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -20, scale: 0.9 }}
+            className="fixed top-6 left-1/2 -translate-x-1/2 z-[200] bg-emerald-900 border border-emerald-500 shadow-[0_0_15px_rgba(16,185,129,0.5)] rounded-full px-6 py-2.5 font-mono text-emerald-400 flex items-center gap-3"
+          >
+            <Wifi className="w-4 h-4 text-emerald-400 animate-pulse" />
+            <span className="text-[10px] font-bold uppercase tracking-widest">
+              CONNECTION RESTORED: DOH SERVER UPLINK ESTABLISHED
+            </span>
           </motion.div>
         )}
       </AnimatePresence>
