@@ -1385,6 +1385,7 @@ export default function App() {
           <IngredientSelector 
             ingredients={ingredients} 
             onChange={(updated) => setIngredients(updated)}
+            savedPlans={savedPlans}
           />
 
           {/* Call to action panel */}

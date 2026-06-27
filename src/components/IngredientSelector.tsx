@@ -3,13 +3,14 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState } from 'react';
-import { Ingredient } from '../types';
-import { Package, Leaf, Plus, Minus, PlusCircle, Trash, HelpCircle } from 'lucide-react';
+import React, { useState, useMemo } from 'react';
+import { Ingredient, SavedMealPlan } from '../types';
+import { Package, Leaf, Plus, Minus, PlusCircle, Trash, HelpCircle, AlertTriangle, Search } from 'lucide-react';
 
 interface IngredientSelectorProps {
   ingredients: Ingredient[];
   onChange: (updated: Ingredient[]) => void;
+  savedPlans?: SavedMealPlan[];
 }
 
 export const INITIAL_INGREDIENTS: Ingredient[] = [
@@ -30,9 +31,10 @@ export const INITIAL_INGREDIENTS: Ingredient[] = [
   { id: 'soy_sauce', name: 'Toyo or Patis (Basic Seasoning)', category: 'pantry', unit: 'small bottle', count: 1, selected: false, unitCost: 15 },
 ];
 
-export default function IngredientSelector({ ingredients, onChange }: IngredientSelectorProps) {
+export default function IngredientSelector({ ingredients, onChange, savedPlans }: IngredientSelectorProps) {
   const [newIngredientName, setNewIngredientName] = useState('');
   const [newCategory, setNewCategory] = useState<'relief' | 'local' | 'pantry'>('local');
+  const [searchQuery, setSearchQuery] = useState('');
 
   const handleToggle = (id: string) => {
     const updated = ingredients.map((ing) => {
@@ -78,34 +80,66 @@ export default function IngredientSelector({ ingredients, onChange }: Ingredient
     onChange(updated);
   };
 
-  const reliefItems = ingredients.filter((ing) => ing.category === 'relief');
-  const localItems = ingredients.filter((ing) => ing.category === 'local');
-  const pantryItems = ingredients.filter((ing) => ing.category === 'pantry');
+  const filteredIngredients = useMemo(() => {
+    if (!searchQuery.trim()) return ingredients;
+    const query = searchQuery.toLowerCase().trim();
+    return ingredients.filter(ing => ing.name.toLowerCase().includes(query));
+  }, [ingredients, searchQuery]);
+
+  const reliefItems = filteredIngredients.filter((ing) => ing.category === 'relief');
+  const localItems = filteredIngredients.filter((ing) => ing.category === 'local');
+  const pantryItems = filteredIngredients.filter((ing) => ing.category === 'pantry');
+
+  const usageCounts = useMemo(() => {
+    if (!savedPlans) return new Map<string, number>();
+    const counts = new Map<string, number>();
+    savedPlans.forEach(plan => {
+      if (plan.ingredientsUsed) {
+        plan.ingredientsUsed.forEach(ingName => {
+          counts.set(ingName, (counts.get(ingName) || 0) + 1);
+        });
+      }
+    });
+    return counts;
+  }, [savedPlans]);
 
   const renderIngredientCard = (ing: Ingredient) => {
+    const usageCount = usageCounts.get(ing.name) || 0;
+    // Highlight if used frequently (>= 2 times) but currently not selected (out of stock)
+    const isRunningLow = !ing.selected && usageCount >= 2;
+
     return (
       <div
         key={ing.id}
         className={`flex items-center justify-between p-3 rounded-xl border-2 transition-all ${
           ing.selected
             ? 'border-[#ABEBC6] bg-[#E9F7EF] shadow-xs'
-            : 'border-slate-150 bg-white hover:bg-[#F4F7F6]'
+            : isRunningLow 
+              ? 'border-orange-300 bg-orange-50 shadow-xs'
+              : 'border-slate-150 bg-white hover:bg-[#F4F7F6]'
         }`}
       >
-        <div className="flex items-center gap-3 flex-1">
+        <div className="flex items-center gap-3 flex-1 min-w-0">
           <input
             type="checkbox"
             checked={ing.selected}
             onChange={() => handleToggle(ing.id)}
-            className="rounded-sm border-slate-300 text-[#27AE60] focus:ring-[#27AE60] h-4.5 w-4.5 cursor-pointer accent-[#27AE60]"
+            className="rounded-sm border-slate-300 text-[#27AE60] focus:ring-[#27AE60] h-4.5 w-4.5 shrink-0 cursor-pointer accent-[#27AE60]"
           />
           <div className="min-w-0">
-            <span className={`text-xs font-black uppercase tracking-tight block truncate ${ing.selected ? 'text-[#1E8449]' : 'text-slate-600'}`}>
+            <span className={`text-xs font-black uppercase tracking-tight block truncate ${ing.selected ? 'text-[#1E8449]' : isRunningLow ? 'text-orange-800' : 'text-slate-600'}`}>
               {ing.name}
             </span>
-            <span className="block text-[10px] text-slate-400 font-bold uppercase">
-              {ing.unit} available
-            </span>
+            {isRunningLow ? (
+              <span className="flex items-center gap-1 text-[9px] font-black uppercase text-orange-600 mt-0.5 tracking-widest bg-orange-100 px-1.5 py-0.5 rounded-sm inline-flex">
+                <AlertTriangle className="w-2.5 h-2.5 shrink-0" />
+                Running Low - Request Support
+              </span>
+            ) : (
+              <span className="block text-[10px] text-slate-400 font-bold uppercase truncate">
+                {ing.unit} available
+              </span>
+            )}
           </div>
         </div>
 
@@ -147,42 +181,60 @@ export default function IngredientSelector({ ingredients, onChange }: Ingredient
     <div className="space-y-6">
       {/* Dynamic selection card */}
       <div className="bg-white rounded-2xl border-2 border-[#E2E8F0] p-6 shadow-xs">
-        <div className="flex items-center gap-3 border-b border-gray-100 pb-4 mb-6">
-          <div className="p-2.5 bg-[#E8F8F5] text-v-green rounded-xl">
-            <Package className="w-5 h-5" />
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-gray-100 pb-4 mb-6">
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 bg-[#E8F8F5] text-v-green rounded-xl">
+              <Package className="w-5 h-5" />
+            </div>
+            <div>
+              <h2 className="font-sans font-black text-sm uppercase tracking-widest text-[#27AE60] flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-v-orange"></span>
+                Available Stock Inventory
+              </h2>
+              <p className="text-[11px] text-slate-500 font-medium">
+                Toggle specific items currently present in the family home
+              </p>
+            </div>
           </div>
-          <div>
-            <h2 className="font-sans font-black text-sm uppercase tracking-widest text-[#27AE60] flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-v-orange"></span>
-              Available Stock Inventory
-            </h2>
-            <p className="text-[11px] text-slate-500 font-medium">
-              Toggle specific items currently present in the family home
-            </p>
+          <div className="relative w-full sm:w-64 shrink-0">
+            <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none">
+              <Search className="h-4 w-4 text-slate-400" />
+            </div>
+            <input
+              type="text"
+              placeholder="Search inventory..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full bg-slate-50 border-2 border-slate-100 rounded-xl py-2 pl-9 pr-4 text-xs font-semibold text-v-dark placeholder:text-slate-400 focus:outline-hidden focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 transition-all"
+            />
           </div>
         </div>
 
         {/* Section 1: Relief goods */}
-        <div className="mb-6">
-          <h3 className="flex items-center gap-2 text-xs font-black uppercase tracking-widest text-v-green mb-3">
-            <Package className="w-3.5 h-3.5" />
-            <span>Relief Goods / NFA Packets</span>
-          </h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            {reliefItems.map(renderIngredientCard)}
+        {reliefItems.length > 0 && (
+          <div className="mb-6">
+            <h3 className="flex items-center gap-2 text-xs font-black uppercase tracking-widest text-v-green mb-3">
+              <Package className="w-3.5 h-3.5" />
+              <span>Relief Goods / NFA Packets</span>
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              {reliefItems.map(renderIngredientCard)}
+            </div>
           </div>
-        </div>
+        )}
 
         {/* Section 2: Backyard/Local crops */}
-        <div className="mb-6 border-t border-gray-100 pt-6">
-          <h3 className="flex items-center gap-2 text-xs font-black uppercase tracking-widest text-v-green mb-3">
-            <Leaf className="w-3.5 h-3.5" />
-            <span>Backyard Harvest & Market Add-ons</span>
-          </h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            {localItems.map(renderIngredientCard)}
+        {localItems.length > 0 && (
+          <div className="mb-6 border-t border-gray-100 pt-6">
+            <h3 className="flex items-center gap-2 text-xs font-black uppercase tracking-widest text-v-green mb-3">
+              <Leaf className="w-3.5 h-3.5" />
+              <span>Backyard Harvest & Market Add-ons</span>
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              {localItems.map(renderIngredientCard)}
+            </div>
           </div>
-        </div>
+        )}
 
         {/* Section 3: Extra Kitchen Pantry ingredients */}
         {pantryItems.length > 0 && (
@@ -194,6 +246,14 @@ export default function IngredientSelector({ ingredients, onChange }: Ingredient
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               {pantryItems.map(renderIngredientCard)}
             </div>
+          </div>
+        )}
+
+        {/* Empty State for Search */}
+        {filteredIngredients.length === 0 && (
+          <div className="py-8 text-center bg-slate-50 border-2 border-dashed border-slate-200 rounded-xl">
+            <Search className="w-6 h-6 text-slate-300 mx-auto mb-2" />
+            <p className="text-xs font-bold text-slate-500 uppercase tracking-widest">No ingredients found</p>
           </div>
         )}
 
