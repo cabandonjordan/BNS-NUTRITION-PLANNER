@@ -1321,16 +1321,6 @@ export default function App() {
 
             <button
               type="button"
-              onClick={() => setCurrentView('captain')}
-              className="py-2.5 px-4 bg-orange-600 hover:bg-orange-650 text-white transition-colors rounded-xl text-xs font-black uppercase tracking-wider flex items-center gap-1.5 cursor-pointer"
-              title="Switch to Captain Board"
-            >
-              <Warehouse className="w-4 h-4" />
-              <span>Supervisor Board</span>
-            </button>
-
-            <button
-              type="button"
               onClick={handleReset}
               className="py-2 px-4 bg-white/10 hover:bg-white/20 border-2 border-white/20 text-white transition-colors rounded-xl text-xs font-bold uppercase tracking-wider flex items-center gap-2 cursor-pointer"
               title="Clear all fields"

@@ -73,6 +73,27 @@ export default function CommunityKitchenProcessor({ isDemoMode, onAlert }: Commu
   const [stocks, setStocks] = useState(DEFAULT_STOCKS);
   const [loading, setLoading] = useState(false);
   const [recipeResult, setRecipeResult] = useState<CommunalBatchRecipe | null>(null);
+  const [activeTab, setActiveTab] = useState<'current' | 'history'>('current');
+  const [batchHistory, setBatchHistory] = useState<CommunalBatchRecipe[]>(() => {
+    try {
+      const saved = localStorage.getItem('bns_batch_history');
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
+
+  React.useEffect(() => {
+    if (recipeResult && !recipeResult.dateGenerated) {
+      const historyItem = { ...recipeResult, dateGenerated: new Date().toISOString() };
+      setRecipeResult(historyItem);
+      setBatchHistory(prev => {
+        const newHistory = [historyItem, ...prev];
+        localStorage.setItem('bns_batch_history', JSON.stringify(newHistory));
+        return newHistory;
+      });
+    }
+  }, [recipeResult]);
 
   // Interactive AI inline edits state
   const [editedGuide, setEditedGuide] = useState<string[]>([]);
@@ -439,6 +460,58 @@ Operating in standard reference mode. Registered ${total} children.
 
   return (
     <div className="space-y-6">
+      {/* Tabs */}
+      <div className="flex gap-6 border-b border-slate-200">
+        <button
+          type="button"
+          onClick={() => setActiveTab('current')}
+          className={`pb-3 text-xs md:text-sm font-black uppercase tracking-wider transition-colors ${activeTab === 'current' ? 'text-emerald-600 border-b-2 border-emerald-600' : 'text-slate-400 hover:text-slate-600'}`}
+        >
+          Current Batch Control
+        </button>
+        <button
+          type="button"
+          onClick={() => setActiveTab('history')}
+          className={`pb-3 text-xs md:text-sm font-black uppercase tracking-wider transition-colors ${activeTab === 'history' ? 'text-emerald-600 border-b-2 border-emerald-600' : 'text-slate-400 hover:text-slate-600'}`}
+        >
+          Batch History ({batchHistory.length})
+        </button>
+      </div>
+
+      {activeTab === 'history' && (
+        <div className="space-y-6 animate-fade-in">
+          {batchHistory.length === 0 ? (
+            <div className="text-center py-12 text-slate-500 font-semibold text-sm bg-white rounded-2xl border-2 border-slate-200 border-dashed">
+              No batch history found. Generate a communal plan to start recording history.
+            </div>
+          ) : (
+            <div className="grid gap-6">
+              {batchHistory.map((history, idx) => (
+                <div key={idx} className="bg-white border-2 border-emerald-100 rounded-2xl p-6 shadow-sm space-y-4 text-left">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 pb-4">
+                    <div>
+                      <h4 className="font-sans font-black text-lg text-slate-800 uppercase tracking-tight">{history.title}</h4>
+                      <span className="text-[10px] text-emerald-600 font-black uppercase tracking-widest bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200 mt-2 inline-block">
+                        {new Date(history.dateGenerated || '').toLocaleString()}
+                      </span>
+                    </div>
+                    <div className="bg-amber-50 border border-amber-200 text-amber-700 px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest shrink-0">
+                      {history.totalServings} Communal Servings
+                    </div>
+                  </div>
+                  <div className="space-y-3">
+                    <p className="text-xs text-slate-600 font-semibold leading-relaxed line-clamp-3">
+                      {history.dietarySuitability}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      <div className={activeTab === 'current' ? 'space-y-6 animate-fade-in' : 'hidden'}>
       
       {/* Overview stats */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 font-sans">
@@ -1038,6 +1111,7 @@ Operating in standard reference mode. Registered ${total} children.
         </div>
       )}
 
+      </div>
     </div>
   );
 }

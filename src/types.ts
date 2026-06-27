@@ -80,5 +80,6 @@ export interface CommunalBatchRecipe {
   scaledIngredients: Array<{ name: string; quantity: string; category: string }>;
   batchPreparationGuide: string[];
   dietarySuitability: string;
+  dateGenerated?: string;
 }
 
